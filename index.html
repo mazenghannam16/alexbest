@@ -1,82 +1,82 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>نشر فيلم على بلوجر</title>
+  <meta charset="UTF-8" />
+  <title>تسجيل دخول الأدمن</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.6);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+      background-color: #2e2e2e;
+      color: white;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 25px;
+      background-color: #6200ee;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .error {
+      margin-top: 15px;
+      color: red;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <h2>لوحة التحكم - نشر فيلم</h2>
 
-  <button onclick="handleAuthClick()">تسجيل الدخول بحساب Google</button>
-
-  <div id="form" style="display:none; margin-top: 20px;">
-    <input type="text" id="title" placeholder="اسم الفيلم"><br><br>
-    <textarea id="content" placeholder="وصف الفيلم"></textarea><br><br>
-    <input type="text" id="image" placeholder="رابط الصورة"><br><br>
-    <input type="text" id="watchLink" placeholder="رابط المشاهدة"><br><br>
-    <input type="text" id="downloadLink" placeholder="رابط التحميل"><br><br>
-    <button onclick="postToBlogger()">نشر</button>
+  <div class="login-container">
+    <h2>تسجيل دخول الأدمن</h2>
+    <input type="password" id="password" placeholder="ادخل كلمة المرور" />
+    <button onclick="checkPassword()">دخول</button>
+    <div class="error" id="error">كلمة المرور غير صحيحة</div>
   </div>
 
   <script>
-    const CLIENT_ID = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
-    const API_KEY = ''; // مش محتاجه دلوقتي
-    const BLOG_ID = '277624714973052630';
-    const SCOPES = 'https://www.googleapis.com/auth/blogger';
+    function checkPassword() {
+      const password = document.getElementById('password').value;
+      const error = document.getElementById('error');
 
-    let tokenClient;
-    let accessToken;
-
-    function handleAuthClick() {
-      google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (tokenResponse) => {
-          accessToken = tokenResponse.access_token;
-          document.getElementById('form').style.display = 'block';
-        }
-      }).requestAccessToken();
-    }
-
-    function postToBlogger() {
-      const title = document.getElementById('title').value;
-      const content = document.getElementById('content').value;
-      const image = document.getElementById('image').value;
-      const watch = document.getElementById('watchLink').value;
-      const download = document.getElementById('downloadLink').value;
-
-      const fullContent = `
-        <img src="${image}" alt="صورة الفيلم"><br><br>
-        <p>${content}</p>
-        <p><a href="${watch}" target="_blank">مشاهدة</a></p>
-        <p><a href="${download}" target="_blank">تحميل</a></p>
-      `;
-
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts/`, {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + accessToken,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          kind: 'blogger#post',
-          title: title,
-          content: fullContent
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        alert("✅ تم نشر الفيلم بنجاح!");
-        console.log(data);
-      })
-      .catch(error => {
-        console.error("❌ خطأ أثناء النشر:", error);
-        alert("حدث خطأ أثناء النشر");
-      });
+      if (password === '0000') {
+        window.location.href = 'https://alexbest.vercel.app/dashboard.html';
+      } else {
+        error.style.display = 'block';
+      }
     }
   </script>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
