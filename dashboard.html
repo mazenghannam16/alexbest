@@ -1,212 +1,199 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-
+<html lang="ar">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة تحكم بلوجر</title>
+  <title>لوحة تحكم MezoTV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       font-family: 'Cairo', sans-serif;
+      background: #121212;
+      color: #fff;
       margin: 0;
       padding: 0;
-      background-color: #f4f4f4;
-      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
     }
-
-    header {
-      background: #1e88e5;
-      color: #fff;
-      padding: 1rem;
-      text-align: center;
+    .dashboard {
+      width: 90%;
+      max-width: 900px;
+      background: #1e1e1e;
+      margin-top: 50px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 3fr;
-      gap: 1rem;
-      padding: 1rem;
-    }
-
-    aside {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-    }
-
-    main {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-    }
-
-    .post {
-      border-bottom: 1px solid #ddd;
-      padding: 0.5rem 0;
-    }
-
-    .post h3 {
-      margin: 0;
-      display: inline-block;
-    }
-
-    .actions {
-      float: left;
-    }
-
-    .actions button {
-      margin-left: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #1e88e5;
-    }
-
-    .dark-mode {
-      background-color: #121212;
-      color: #eee;
-    }
-
-    .dark-mode header {
-      background: #333;
-    }
-
-    .dark-mode .post {
-      border-color: #555;
-    }
-
-    .toggle-mode {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      cursor: pointer;
-      background: #fff;
+    textarea, input {
+      width: 100%;
       padding: 10px;
-      border-radius: 50%;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-family: 'Cairo', sans-serif;
+    }
+    .buttons button {
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #6200ee;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .post-list {
+      margin-top: 30px;
+    }
+    .post-item {
+      background: #292929;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+    .post-item h3 {
+      margin: 0 0 10px;
+    }
+    .post-item button {
+      margin-right: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    #loginBtn {
+      margin-bottom: 20px;
     }
   </style>
 </head>
-
 <body>
-  <div class="toggle-mode" onclick="toggleDarkMode()">
-    <i class="fas fa-adjust"></i>
-  </div>
-  <header>
-    <h1>لوحة تحكم بلوجر</h1>
-  </header>
-  <div class="container">
-    <aside>
-      <h2>القائمة</h2>
-      <ul>
-        <li><a href="#" onclick="fetchPosts()">📄 عرض المقالات</a></li>
-        <li><a href="#" onclick="fetchPages()">📄 عرض الصفحات</a></li>
-        <li><a href="#" onclick="createNewPost()">✍️ مقال جديد</a></li>
-      </ul>
-    </aside>
-    <main>
-      <div id="content">
-        <p>اختر من القائمة لبدء التحكم.</p>
-      </div>
-    </main>
+  <div class="dashboard">
+    <button id="loginBtn" onclick="signInWithGoogle()">🔐 تسجيل الدخول باستخدام Google</button>
+    <h1>لوحة تحكم MezoTV</h1>
+    <p id="userEmail"></p>
+
+    <input type="text" id="postTitle" placeholder="عنوان المقال أو الصفحة">
+    <textarea id="postContent" placeholder="محتوى المقال أو الصفحة"></textarea>
+
+    <div class="buttons">
+      <button onclick="publishPost()">📰 نشر كمقال</button>
+      <button onclick="publishPage()">📄 نشر كصفحة</button>
+      <button onclick="getPosts()">📚 عرض المقالات</button>
+      <button onclick="getPages()">📄 عرض الصفحات</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="post-list" id="postList"></div>
   </div>
 
   <script>
-    const blogId = "277624714973052630";
-    const token = new URLSearchParams(window.location.hash.substring(1)).get("access_token");
+    const blogId = '277624714973052630';
+    let token = null;
 
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark-mode");
+    function signInWithGoogle() {
+      const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+      const redirectUri = window.location.origin + window.location.pathname;
+      const scope = 'https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/userinfo.email';
+      window.location = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
     }
 
-    async function fetchPosts() {
-      const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      let html = '<h2>📄 المقالات</h2>';
-      data.items.forEach(post => {
-        html += `<div class="post">
-          <h3>${post.title}</h3>
-          <div class="actions">
-            <button onclick="editPost('${post.id}')"><i class='fas fa-pen'></i></button>
-            <button onclick="deletePost('${post.id}')"><i class='fas fa-trash'></i></button>
-          </div>
-        </div>`;
-      });
-      document.getElementById("content").innerHTML = html;
+    window.onload = () => {
+      token = window.location.hash.split('access_token=')[1]?.split('&')[0];
+      if (token) {
+        document.getElementById("loginBtn").style.display = "none";
+        fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+          headers: { Authorization: 'Bearer ' + token }
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('userEmail').innerText = `مرحبًا، ${data.email}`;
+        });
+      }
     }
 
-    async function fetchPages() {
-      const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      let html = '<h2>📄 الصفحات</h2>';
-      data.items.forEach(page => {
-        html += `<div class="post">
-          <h3>${page.title}</h3>
-          <div class="actions">
-            <button onclick="editPage('${page.id}')"><i class='fas fa-pen'></i></button>
-            <button onclick="deletePage('${page.id}')"><i class='fas fa-trash'></i></button>
-          </div>
-        </div>`;
-      });
-      document.getElementById("content").innerHTML = html;
-    }
-
-    function createNewPost() {
-      document.getElementById("content").innerHTML = `
-        <h2>✍️ مقال جديد</h2>
-        <input id="title" placeholder="عنوان المقال" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-        <textarea id="contentArea" placeholder="محتوى المقال" style="width: 100%; height: 200px; padding: 10px;"></textarea>
-        <button onclick="submitPost()">📝 نشر</button>
-      `;
-    }
-
-    async function submitPost() {
-      const title = document.getElementById("title").value;
-      const content = document.getElementById("contentArea").value;
-      await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+    function publishPost() {
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
+      })
+      .then(res => res.json())
+      .then(() => {
+        document.getElementById('status').innerText = '✅ تم نشر المقال';
       });
-      alert("تم النشر بنجاح!");
-      fetchPosts();
     }
 
-    function editPost(id) {
-      alert("تعديل المقال غير مفعل حاليًا.");
+    function publishPage() {
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      })
+      .then(res => res.json())
+      .then(() => {
+        document.getElementById('status').innerText = '✅ تم نشر الصفحة';
+      });
+    }
+
+    function getPosts() {
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById('postList');
+        list.innerHTML = '';
+        data.items?.forEach(post => {
+          list.innerHTML += `
+            <div class="post-item">
+              <h3>${post.title}</h3>
+              <button onclick="editPost('${post.id}', '${post.title.replace(/'/g, "\'")}', \`${post.content.replace(/`/g, "\`")} \`)">✏️ تعديل</button>
+              <button onclick="deletePost('${post.id}')">🗑️ حذف</button>
+            </div>
+          `;
+        });
+      });
+    }
+
+    function editPost(id, title, content) {
+      document.getElementById('postTitle').value = title;
+      document.getElementById('postContent').value = content;
+      document.getElementById('status').innerHTML = `<button onclick="saveEdit('${id}')">💾 حفظ التعديل</button>`;
+    }
+
+    function saveEdit(id) {
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '✅ تم تعديل المقال';
+        getPosts();
+      });
     }
 
     function deletePost(id) {
-      if (confirm("هل تريد حذف هذا المقال؟")) {
-        fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(() => fetchPosts());
-      }
-    }
-
-    function editPage(id) {
-      alert("تعديل الصفحات غير مفعل حاليًا.");
-    }
-
-    function deletePage(id) {
-      if (confirm("هل تريد حذف هذه الصفحة؟")) {
-        fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(() => fetchPages());
-      }
+      if (!confirm('هل أنت متأكد من حذف هذا المقال؟')) return;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '🗑️ تم حذف المقال';
+        getPosts();
+      });
     }
   </script>
 </body>
-
 </html>
