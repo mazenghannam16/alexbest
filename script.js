@@ -1,20 +1,8 @@
-function handleCredentialResponse(response) {
-  const data = jwt_decode(response.credential);
-  document.getElementById("result").innerHTML = `
-    <h3>أهلاً ${data.name}</h3>
-    <img src="${data.picture}" width="100"/>
-    <p>Email: ${data.email}</p>
-  `;
+const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+const redirectUri = 'https://alexbest.vercel.app/dashboard.html';
+const scope = 'https://www.googleapis.com/auth/blogger';
+
+function loginWithGoogle() {
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true`;
+  window.location.href = authUrl;
 }
-
-window.onload = function () {
-  google.accounts.id.initialize({
-    client_id: "ضع_هنا_معرف_العميل_Client_ID", // ← حط هنا Client ID بتاعك
-    callback: handleCredentialResponse
-  });
-
-  google.accounts.id.renderButton(
-    document.getElementById("loginBtn"),
-    { theme: "outline", size: "large" }
-  );
-};
