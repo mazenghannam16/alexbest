@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>لوحة تحكم MezoTV</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
     body {
@@ -23,14 +24,15 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
       margin-bottom: 40px;
     }
-    input, textarea {
+    .dashboard input, 
+    .dashboard textarea {
       background-color: #121212;
       color: #fff;
       border: none;
       border-radius: 5px;
       padding: 10px;
     }
-    textarea {
+    .dashboard textarea {
       resize: vertical;
     }
     .spinner {
@@ -93,12 +95,77 @@
       z-index: 1000;
       display: none;
     }
-    .suggestion-item {
+    .suggestion {
       padding: 10px;
       cursor: pointer;
     }
-    .suggestion-item:hover {
-      background: #444;
+    .suggestion:hover {
+      background: #555;
+    }
+    .mazen-generator {
+      max-width: 800px;
+      margin: auto;
+      background: #0e2a3c;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      color: #ffffff;
+      text-align: right;
+      margin-bottom: 40px;
+    }
+    .mazen-generator h1 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+    .mazen-generator label {
+      display: block;
+      margin-top: 15px;
+    }
+    .mazen-generator input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      margin-top: 5px;
+      font-size: 16px;
+      background-color: #1c3d57;
+      color: #fff;
+    }
+    .mazen-generator button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .mazen-generator button:hover {
+      background-color: #1976d2;
+    }
+    .mazen-generator textarea {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      font-size: 14px;
+      padding: 15px;
+      border-radius: 8px;
+      border: none;
+      resize: vertical;
+      background-color: #1c3d57;
+      color: white;
+    }
+    .mazen-button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .mazen-copy-message {
+      color: #8bc34a;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -109,16 +176,16 @@
     </button>
 
     <h1 class="mb-3">لوحة تحكم اليكس بست</h1>
-    <p id="userEmail"></p>
+    <p id="playerEmail"></p>
 
-    <input type="text" id="postTitle" class="form-control" placeholder="عنوان المقال أو الصفحة" />
-    <textarea id="postContent" class="form-control mt-2" placeholder="محتوى المقال أو الصفحة" rows="5"></textarea>
+    <input type="text" id="postTitle" class="form-control" placeholder="عنوان المقالة أو الصفحة" />
+    <textarea id="postContent" class="form-control mt-2" placeholder="محتوى المقالة أو الصفحة" rows="5"></textarea>
 
     <div class="d-flex gap-2 flex-wrap mt-3">
       <button class="btn btn-success" onclick="publishPost()"><i class="fas fa-newspaper"></i> نشر الفيلم</button>
       <button class="btn btn-secondary" onclick="publishPage()"><i class="fas fa-file-alt"></i> نشر السيرفر</button>
       <button class="btn btn-info" onclick="getPosts()"><i class="fas fa-book"></i> عرض الأفلام</button>
-      <button class="btn btn-light" onclick="getPages()"><i class="fas fa-file"></i> عرض السيرفرات</button>
+      <button class="btn btn-light" onclick="getPages()"><i class="fas fa-files"></i> عرض السيرفرات</button>
     </div>
 
     <div id="status" class="mt-3 text-warning"></div>
@@ -128,7 +195,7 @@
   </div>
 
   <div class="series-generator">
-    <h1>مولد المسلسلات</h1>
+    <h2>مولد المسلسلات</h2>
     <div style="position: relative;">
       <input type="text" id="seriesName" placeholder="أدخل اسم المسلسل هنا" />
       <div id="seriesSuggestions" class="suggestions"></div>
@@ -140,7 +207,7 @@
   </div>
 
   <div class="movie-generator">
-    <h1>مولد الأفلام</h1>
+    <h2>مولد الأفلام</h2>
     <div style="position: relative;">
       <input type="text" id="movieName" placeholder="أدخل اسم الفيلم هنا" />
       <div id="movieSuggestions" class="suggestions"></div>
@@ -151,8 +218,33 @@
     <button onclick="copyMovieCode()">نسخ الكود</button>
   </div>
 
+  <div class="mazen-generator">
+    <h2>مولد كود Mazen Mohamed</h2>
+
+    <label for="mazenSection">اسم القسم:</label>
+    <input type="text" id="mazenSection" placeholder="مثال: أفلام أجنبية">
+
+    <label for="mazenWecima">رابط Wecima أو أي رابط مشاهدة:</label>
+    <input type="text" id="mazenWecima" placeholder="ألصق رابط الفيلم هنا">
+
+    <button onclick="mazenConvertLink()">تحويل الرابط</button>
+
+    <label for="mazenServer">رابط السيرفر الناتج:</label>
+    <input type="text" id="mazenServer" placeholder="سيتم لصق الرابط المحول هنا تلقائيًا" readonly>
+
+    <div class="mazen-button-group">
+      <button onclick="mazenGenerateCode()">توليد الكود</button>
+      <button onclick="mazenCopyCode()">نسخ الكود</button>
+    </div>
+
+    <div id="mazenCopyMessage" class="mazen-copy-message" style="display: none;">✅ تم نسخ الكود!</div>
+
+    <textarea id="mazenGeneratedCode" readonly placeholder="الكود سيظهر هنا..."></textarea>
+  </div>
+
   <script>
     const blogId = '277624714973052630';
+    // تأكد من أن مفتاح TMDB API صالح. احصل على مفتاح جديد من https://www.themoviedb.org/settings/api إذا لزم الأمر.
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
     let token = null;
 
@@ -167,18 +259,21 @@
     }
 
     function safeAttr(str) {
-      return encodeURIComponent(str);
+      return encodeURIComponent(str || '');
     }
 
     function signInWithGoogle() {
       const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
       const redirectUri = window.location.origin + window.location.pathname;
       const scope = 'https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/userinfo.email';
-      window.location = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
+      window.location = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(scope)}`;
     }
 
     function showSpinner(show) {
-      document.getElementById("spinner").style.display = show ? "block" : "none";
+      const spinner = document.getElementById('spinner');
+      if (spinner) {
+        spinner.style.display = show ? 'block' : 'none';
+      }
     }
 
     function copyToClipboard(text) {
@@ -203,18 +298,18 @@
       }
 
       showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
       })
       .then(res => res.json())
       .then(data => {
         const link = data.url;
         document.getElementById('status').innerHTML = `
-          ✅ تم نشر المقال<br>
+          ✅ تم نشر المقالة<br>
           <div class="link-box">
-            ${link}<br>
+            ${escapeHTML(link)}<br>
             <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapeHTML(link)}')">نسخ الرابط</button>
           </div>`;
         document.getElementById('postTitle').value = '';
@@ -236,9 +331,9 @@
       }
 
       showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/`, {
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages`, {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
       })
       .then(res => res.json())
@@ -247,7 +342,7 @@
         document.getElementById('status').innerHTML = `
           ✅ تم نشر الصفحة<br>
           <div class="link-box">
-            ${link}<br>
+            ${escapeHTML(link)}<br>
             <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapeHTML(link)}')">نسخ الرابط</button>
           </div>`;
         document.getElementById('postTitle').value = '';
@@ -262,8 +357,8 @@
 
     function getPosts() {
       showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-        headers: { Authorization: 'Bearer ' + token }
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => {
@@ -274,7 +369,7 @@
           const escapedContent = escapeHTML(post.content);
           const escapedUrl = escapeHTML(post.url);
           list.innerHTML += `
-            <div class="card bg-dark text-white mb-3" data-id="${post.id}" data-title="${safeAttr(post.title)}" data-content="${safeAttr(post.content)}">
+            <div class="card bg-dark text-white mb-3" data-post-id="${post.id}" data-title="${safeAttr(post.title)}" data-content="${safeAttr(post.content)}">
               <div class="card-body">
                 <h5 class="card-title">${escapedTitle}</h5>
                 <div class="link-box">
@@ -286,7 +381,7 @@
                     <i class="fas fa-edit"></i> تعديل
                   </button>
                   <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">
-                    <i class="fas fa-trash-alt"></i> حذف
+                    <i class="fas fa-trash"></i> حذف
                   </button>
                 </div>
               </div>
@@ -296,7 +391,7 @@
         document.querySelectorAll('.edit-post-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const card = btn.closest('.card');
-            const id = card.dataset.id;
+            const id = card.dataset.postId;
             const title = decodeURIComponent(card.dataset.title);
             const content = decodeURIComponent(card.dataset.content);
             editPost(id, title, content);
@@ -312,8 +407,8 @@
 
     function getPages() {
       showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/`, {
-        headers: { Authorization: 'Bearer ' + token }
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
       .then(data => {
@@ -324,7 +419,7 @@
           const escapedContent = escapeHTML(page.content);
           const escapedUrl = escapeHTML(page.url);
           list.innerHTML += `
-            <div class="card bg-dark text-white mb-3" data-id="${page.id}" data-title="${safeAttr(page.title)}" data-content="${safeAttr(page.content)}">
+            <div class="card bg-dark text-white mb-3" data-page-id="${page.id}" data-title="${safeAttr(page.title)}" data-content="${safeAttr(page.content)}">
               <div class="card-body">
                 <h5 class="card-title">${escapedTitle}</h5>
                 <div class="link-box">
@@ -336,7 +431,7 @@
                     <i class="fas fa-edit"></i> تعديل
                   </button>
                   <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">
-                    <i class="fas fa-trash-alt"></i> حذف
+                    <i class="fas fa-trash"></i> حذف
                   </button>
                 </div>
               </div>
@@ -346,7 +441,7 @@
         document.querySelectorAll('.edit-page-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const card = btn.closest('.card');
-            const id = card.dataset.id;
+            const id = card.dataset.pageId;
             const title = decodeURIComponent(card.dataset.title);
             const content = decodeURIComponent(card.dataset.content);
             editPage(id, title, content);
@@ -364,7 +459,7 @@
       document.getElementById('postTitle').value = title;
       document.getElementById('postContent').value = content;
       document.getElementById('status').innerHTML = `
-        <button class="btn btn-primary" onclick="updatePost('${id}')">تحديث المقال</button>
+        <button class="btn btn-primary" onclick="updatePost('${id}')">تحديث المقالة</button>
       `;
     }
 
@@ -379,12 +474,12 @@
       showSpinner(true);
       fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
         method: 'PUT',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, title, content })
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById('status').innerText = '✅ تم تحديث المقال بنجاح.';
+        document.getElementById('status').innerText = '✅ تم تحديث المقالة بنجاح.';
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
         getPosts();
@@ -402,7 +497,7 @@
       showSpinner(true);
       fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(() => {
         document.getElementById('status').innerText = '✅ تم حذف المقال.';
@@ -434,8 +529,8 @@
       showSpinner(true);
       fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
         method: 'PUT',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, title, content })
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
       })
       .then(res => res.json())
       .then(data => {
@@ -457,7 +552,7 @@
       showSpinner(true);
       fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(() => {
         document.getElementById('status').innerText = '✅ تم حذف الصفحة.';
@@ -471,33 +566,48 @@
     }
 
     function fetchSuggestions(type) {
-      const query = type === 'series' ? 
-        document.getElementById('seriesName')?.value.trim() : 
-        document.getElementById('movieName')?.value.trim();
-      const suggestionsDiv = document.getElementById(type === 'series' ? 'seriesSuggestions' : 'movieSuggestions');
-      
-      if (!query || !suggestionsDiv) {
-        if (suggestionsDiv) {
-          suggestionsDiv.style.display = 'none';
-          suggestionsDiv.innerHTML = '';
-        }
+      const inputId = type === 'series' ? 'seriesName' : 'movieName';
+      const suggestionsId = type === 'series' ? 'seriesSuggestions' : 'movieSuggestions';
+      const queryInput = document.getElementById(inputId);
+      const suggestionsDiv = document.getElementById(suggestionsId);
+
+      if (!queryInput || !suggestionsDiv) {
+        console.warn(`عنصر ${inputId} أو ${suggestionsId} غير موجود.`);
+        return;
+      }
+
+      const query = queryInput.value.trim();
+      if (!query) {
+        suggestionsDiv.style.display = 'none';
+        suggestionsDiv.innerHTML = '';
         return;
       }
 
       const endpoint = type === 'series' ? 'tv' : 'movie';
       const url = `https://api.themoviedb.org/3/search/${endpoint}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`;
-      
+
       fetch(url)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('مفتاح API غير صالح. يرجى التحقق من مفتاح TMDB API.');
+            } else if (response.status === 429) {
+              throw new Error('تم تجاوز حصة الطلبات. حاول مرة أخرى لاحقًا.');
+            } else {
+              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
+            }
+          }
+          return response.json();
+        })
         .then(data => {
           suggestionsDiv.innerHTML = '';
-          if (data.results.length > 0) {
+          if (data.results && data.results.length > 0) {
             data.results.slice(0, 5).forEach(item => {
               const suggestion = document.createElement('div');
-              suggestion.className = 'suggestion-item';
-              suggestion.innerText = item.name || item.title;
+              suggestion.className = 'suggestion';
+              suggestion.innerText = item.name || item.title || 'غير معروف';
               suggestion.onclick = () => {
-                document.getElementById(type === 'series' ? 'seriesName' : 'movieName').value = item.name || item.title;
+                queryInput.value = item.name || item.title || '';
                 suggestionsDiv.style.display = 'none';
               };
               suggestionsDiv.appendChild(suggestion);
@@ -505,10 +615,13 @@
             suggestionsDiv.style.display = 'block';
           } else {
             suggestionsDiv.style.display = 'none';
+            suggestionsDiv.innerHTML = '<p class="suggestion">لا توجد نتائج.</p>';
           }
         })
         .catch(error => {
-          console.error('خطأ في جلب الاقتراحات:', error);
+          console.error(`خطأ في جلب الاقتراحات (${type}):`, error.message);
+          suggestionsDiv.innerHTML = '<p class="suggestion text-warning">فشل في جلب الاقتراحات. حاول لاحقًا.</p>';
+          suggestionsDiv.style.display = 'block';
         });
     }
 
@@ -520,93 +633,116 @@
       }
 
       const endpoint = type === 'series' ? 'tv' : 'movie';
-      const url = `https://api.themoviedb.org/3/search/${endpoint}?api_key=${apiKey}&query=${encodeURIComponent(name)}&language=ar`;
+      const url = `https://api.themoviedb.org/3/search/${endpoint}?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(name)}&language=ar`;
 
       fetch(url)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('مفتاح API غير صالح.');
+            } else if (response.status === 429) {
+              throw new Error('تم تجاوز حصة الطلبات.');
+            } else {
+              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
+            }
+          }
+          return response.json();
+        })
         .then(data => {
-          if (data.results.length === 0) {
+          if (!data.results || data.results.length === 0) {
             alert(`لم يتم العثور على ${type === 'series' ? 'المسلسل' : 'الفيلم'}.`);
             return;
           }
 
           const item = data.results[0];
           const id = item.id;
-          const title = item.name || item.title;
+          const title = item.name || item.title || 'غير معروف';
           const description = item.overview || 'لا يوجد وصف متاح';
           const image = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://via.placeholder.com/500x750?text=لا+توجد+صورة';
-          const year = (item.first_air_date || item.release_date)?.split("-")[0] || 'غير معروف';
-          const language = item.original_language;
+          const year = (item.first_air_date || item.release_date)?.split('-')[0] || 'غير معروف';
+          const language = item.original_language || 'en';
           const genres = item.genre_ids || [];
 
           let section = '';
           let sectionLink = '';
           if (language === 'ar') {
             section = type === 'series' ? 'مسلسلات عربية' : 'أفلام عربية';
-            sectionLink = `https://alexbesteg.blogspot.com/search/label/${section}`;
+            sectionLink = `https://alexbesteg.blogspot.com/search/label/${encodeURIComponent(section)}`;
           } else if (language === 'en') {
             section = type === 'series' ? 'مسلسلات أجنبية' : 'أفلام أجنبية';
-            sectionLink = `https://alexbesteg.blogspot.com/search/label/${section}`;
+            sectionLink = `https://alexbesteg.blogspot.com/search/label/${encodeURIComponent(section)}`;
           } else {
             section = type === 'series' ? 'مسلسلات أخرى' : 'أفلام أخرى';
-            sectionLink = `https://alexbesteg.blogspot.com/search/label/${section}`;
+            sectionLink = `https://alexbesteg.blogspot.com/search/label/${encodeURIComponent(section)}`;
           }
 
           const genreList = {
             28: 'أكشن',
             12: 'مغامرة',
-            16: 'أنمي',
+            16: 'أنيمي',
             35: 'كوميدي',
+            80: 'جريمة',
             18: 'دراما',
             27: 'رعب',
             10749: 'رومانسي',
             878: 'خيال علمي'
           };
 
-          let genreNames = genres.map(id => genreList[id] || 'غير معروف').join(', ');
+          const genreNames = genres.map(id => genreList[id] || 'غير معروف').join(', ');
 
-          fetch(`https://api.themoviedb.org/3/${endpoint}/${id}/videos?api_key=${apiKey}&language=ar`)
-            .then(response => response.json())
+          fetch(`https://api.themoviedb.org/3/${endpoint}/${id}/videos?api_key=${encodeURIComponent(apiKey)}&language=ar`)
+            .then(response => {
+              if (!response.ok) {
+                if (response.status === 401) {
+                  throw new Error('مفتاح API غير صالح.');
+                } else if (response.status === 429) {
+                  throw new Error('تم تجاوز حصة الطلبات.');
+                } else {
+                  throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
+                }
+              }
+              return response.json();
+            })
             .then(videoData => {
               let trailerLink = '';
-              if (videoData.results.length > 0) {
+              if (videoData.results && videoData.results.length > 0) {
                 trailerLink = `https://www.youtube.com/watch?v=${videoData.results[0].key}`;
               }
 
               const htmlCode = `
 <yourdesigns>
   <mohamedsafyan>
-    <div class="post-single">
+    <div class="post-wrapper">
       <div class="container">
         <div class="single-poster">
           <div class="separator" style="clear: both;">
-            <a href="${image}" style="display: block; padding: 1em 0; text-align: center;">
-              <img alt="${escapeHTML(title)}" border="0" data-original-height="545" data-original-width="394" src="${image}" />
+            <a href="${escapeHTML(image)}" style="display: block; padding: 1em 0; text-align: center;">
+              <img alt="${escapeHTML(title)}" border="0" data-original-height="545" data-original-width="400" src="${escapeHTML(image)}" />
             </a>
           </div>
         </div>
-        <div class="post-single-content">
+        <div class="post-details">
           <h1 style="direction: rtl;">${escapeHTML(title)}</h1>
-          <div class="post-Inner"></div>
-          <div class="post-single-watching">
+          <div class="post-inner"></div>
+          <div class="post-watching">
             <div class="story">
               <h2>القصة</h2>
               <p>${escapeHTML(description)}</p>
             </div>
           </div>
-          <ul class="post-information-list">
+          <ul class="post-info-list">
             <li><span>الجودة:</span> <a href="#">1080p</a></li>
-            <li><span>القسم:</span> <a href="${sectionLink}">${section}</a></li>
-            <li><span>السنة:</span> <a href="#">${year}</a></li>
-            <li><span>النوع:</span> <a href="#">${genreNames}</a></li>
-            <li><span>تم اضافة ${type === 'series' ? 'المسلسل' : 'الفيلم'} بواسطة</span> <a href="#">Mazen Mohamed</a></li>
+            <li><span>القسم:</span> <a href="${escapeHTML(sectionLink)}">${escapeHTML(section)}</a></li>
+            <li><span>السنة:</span> <a href="#">${escapeHTML(year)}</a></li>
+            <li><span>النوع:</span> <a href="#">${escapeHTML(genreNames)}</a></li>
+            <li><span>تم إضافة ${type === 'series' ? 'المسلسل' : 'الفيلم'} بواسطة:</span> <a href="#">Mazen Mohamed</a></li>
           </ul>
-          <div class="post-single-buttons">
-            ${trailerLink ? `<a href="${trailerLink}" class="dropbtn WatchingArea TrailerColorButton Hoverable">
-              <span><i class="fa fa-youtube-play"></i> مشاهدة إعلان العرض<i class="fa fa-angle-left"></i></span>
+          <div class="post-actions">
+            ${trailerLink ? `<a href="${escapeHTML(trailerLink)}" class="btn btn-danger btn-sm mt-2">
+              <span><i class="fab fa-youtube"></i> مشاهدة الإعلان</span>
             </a>` : ''}
-            <a href="#" class="WatchingArea Hoverable">
-              <span class="WatchNow"><em class="WatchIcon"></em> مشاهدة ${type === 'series' ? 'المسلسل' : 'الفيلم'} <i class="fa fa-angle-left"></i></span>
+            <a href="#" class="btn btn-primary mt-2">
+              <span class="watch-now">مشاهدة ${type === 'series' ? 'المسلسل' : 'الفيلم'}</span>
             </a>
           </div>
         </div>
@@ -615,17 +751,16 @@
   </mohamedsafyan>
 </yourdesigns>
               `;
-
               document.getElementById(outputId).value = htmlCode.trim();
             })
             .catch(error => {
-              console.error(`خطأ في جلب التريلر:`, error);
-              alert(`حدث خطأ أثناء جلب التريلر.`);
+              console.error(`خطأ في جلب الإعلان (${type}):`, error.message);
+              alert(`⚠️ حدث خطأ أثناء جلب الإعلان: ${error.message}`);
             });
         })
         .catch(error => {
-          console.error(`خطأ في جلب بيانات ${type === 'series' ? 'المسلسل' : 'الفيلم'}:`, error);
-          alert(`حدث خطأ أثناء جلب بيانات ${type === 'series' ? 'المسلسل' : 'الفيلم'}.`);
+          console.error(`خطأ في جلب بيانات ${type === 'series' ? 'المسلسل' : 'الفيلم'}:`, error.message);
+          alert(`⚠️ حدث خطأ في جلب البيانات: ${error.message}`);
         });
     }
 
@@ -639,28 +774,115 @@
 
     function copySeriesCode() {
       const code = document.getElementById('generatedSeriesCode');
-      code.select();
-      document.execCommand('copy');
-      alert("تم نسخ الكود!");
+      if (code) {
+        code.select();
+        try {
+          document.execCommand('copy');
+          alert('✅ تم نسخ الكود!');
+        } catch (error) {
+          console.error('خطأ في نسخ الكود:', error);
+          alert('⚠️ حدث خطأ أثناء نسخ الكود.');
+        }
+      }
     }
 
     function copyMovieCode() {
       const code = document.getElementById('generatedMovieCode');
-      code.select();
-      document.execCommand('copy');
-      alert("تم نسخ الكود!");
+      if (code) {
+        code.select();
+        try {
+          document.execCommand('copy');
+          alert('✅ تم نسخ الكود!');
+        } catch (error) {
+          console.error('خطأ في نسخ الكود:', error);
+          alert('⚠️ حدث خطأ أثناء نسخ الكود.');
+        }
+      }
+    }
+
+    // دوال مولد كود Mazen Mohamed
+    function mazenConvertLink() {
+      const originalLink = document.getElementById('mazenWecima').value.trim();
+      if (!originalLink) {
+        alert('من فضلك أدخل رابط صحيح.');
+        return;
+      }
+
+      try {
+        const convertedLink = `https://kareemeelgzar12.serv00.net/MezoTV/app/mezotvserver.php?url=${encodeURIComponent(originalLink)}`;
+        document.getElementById('mazenServer').value = convertedLink;
+      } catch (err) {
+        console.error('خطأ في تحويل الرابط:', err);
+        alert('⚠️ حدث خطأ أثناء تحويل الرابط.');
+      }
+    }
+
+    function mazenGenerateCode() {
+      const section = document.getElementById('mazenSection').value.trim();
+      const server1 = document.getElementById('mazenServer').value.trim();
+
+      if (!section) {
+        alert('يرجى إدخال اسم القسم.');
+        return;
+      }
+      if (!server1) {
+        alert('يرجى تحويل الرابط أولاً.');
+        return;
+      }
+
+      try {
+        const htmlCode = `
+<ul class="InformationList">
+  <li><span>تم النشر بواسطة:</span> Mazen Mohamed</li>
+  <li><span>القسم:</span> ${escapeHTML(section)}</li>
+</ul>
+<div class="watch-server">
+  <div class="container">
+    <div class="watch-server-side">
+      <h2>سيرفر المشاهدة</h2>
+      <button class="watch-server-button active">سيرفر 1</button>
+    </div>
+    <div class="watch-server-content">
+      <div class="tabcontent" style="display: block;">
+        <iframe width="100%" height="460" src="${escapeHTML(server1)}" scrolling="no" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="WatchBar"><span>AlexBest</span></div>
+    </div>
+  </div>
+</div>
+        `;
+        document.getElementById('mazenGeneratedCode').value = htmlCode.trim();
+        document.getElementById('mazenCopyMessage').style.display = 'none';
+      } catch (err) {
+        console.error('خطأ في توليد الكود:', err);
+        alert('⚠️ حدث خطأ أثناء توليد الكود.');
+      }
+    }
+
+    function mazenCopyCode() {
+      const textarea = document.getElementById('mazenGeneratedCode');
+      if (textarea) {
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          document.getElementById('mazenCopyMessage').style.display = 'block';
+        } catch (err) {
+          console.error('خطأ في نسخ الكود:', err);
+          alert('⚠️ حدث خطأ أثناء نسخ الكود.');
+        }
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       token = window.location.hash.split('access_token=')[1]?.split('&')[0];
       if (token) {
-        document.getElementById("loginBtn").style.display = "none";
-        fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
-          headers: { Authorization: 'Bearer ' + token }
+        document.getElementById('loginBtn').style.display = 'none';
+        fetch('https://www.googleapis.com/oauth2/v2/userinfo?alt=json', {
+          headers: { Authorization: `Bearer ${token}` }
         })
         .then(res => res.json())
         .then(data => {
-          document.getElementById('userEmail').innerText = `مرحبًا، ${data.email}`;
+          document.getElementById('playerEmail').innerText = `مرحبًا، ${data.email}`;
         })
         .catch(error => {
           console.error('خطأ في جلب بيانات المستخدم:', error);
@@ -670,14 +892,10 @@
       const seriesInput = document.getElementById('seriesName');
       const movieInput = document.getElementById('movieName');
       if (seriesInput) {
-        seriesInput.addEventListener('input', () => {
-          fetchSuggestions('series');
-        });
+        seriesInput.addEventListener('input', () => fetchSuggestions('series'));
       }
       if (movieInput) {
-        movieInput.addEventListener('input', () => {
-          fetchSuggestions('movie');
-        });
+        movieInput.addEventListener('input', () => fetchSuggestions('movie'));
       }
     });
   </script>
