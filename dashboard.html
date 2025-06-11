@@ -675,3 +675,154 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title></title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #0e2a3c;
+      color: #ffffff;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #1976d2;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      font-size: 14px;
+      padding: 15px;
+      border-radius: 8px;
+      border: none;
+      resize: vertical;
+      background-color: #1c3d57;
+      color: white;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .copied {
+      color: #8bc34a;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>مولد السيرفر</h1>
+
+  <label for="section">اسم القسم:</label>
+  <input type="text" id="section" placeholder="مثال: أفلام أجنبية">
+
+  <label for="wecima">رابط Wecima أو أي رابط مشاهدة:</label>
+  <input type="text" id="wecima" placeholder="ألصق رابط الفيلم هنا">
+
+  <button onclick="convertLink()">تحويل الرابط</button>
+
+  <label for="server1">رابط السيرفر الناتج:</label>
+  <input type="text" id="server1" placeholder="سيتم لصق الرابط المحول هنا تلقائيًا" readonly>
+
+  <div class="button-group">
+    <button onclick="generateCode()">توليد الكود</button>
+    <button onclick="copyCode()">نسخ الكود</button>
+  </div>
+
+  <div id="copyMessage" class="copied" style="display: none;">✅ تم نسخ الكود!</div>
+
+  <textarea id="generatedCode" readonly placeholder="الكود سيظهر هنا..."></textarea>
+
+  <script>
+    function convertLink() {
+      const originalLink = document.getElementById('wecima').value.trim();
+      if (!originalLink) return alert("من فضلك أدخل رابط صحيح.");
+
+      const convertedLink = "https://kareemeelgzar12.serv00.net/MezoTV/app/mezotvserver.php?url=" + encodeURIComponent(originalLink);
+      document.getElementById('server1').value = convertedLink;
+    }
+
+    function generateCode() {
+      const section = document.getElementById('section').value;
+      const server1 = document.getElementById('server1').value;
+
+      if (!server1) return alert("يرجى تحويل الرابط أولاً.");
+
+      const generatedHTML = `
+<ul class="InformationList">
+  <li><span>تم النشر بواسطة:</span> Mazen Mohamed</li>
+  <li><span>القسم:</span> ${section}</li>
+</ul>
+<div class="watch-server">
+  <div class="container">
+    <div class="watch-server-side">
+      <h2>سيرفر المشاهدة</h2>
+      <button class="watch-server-button active">سيرفر 1</button>
+    </div>
+    <div class="watch-server-content">
+      <div class="tabcontent" style="display: block;">
+        <iframe width="100%" height="460" src="${server1}" scrolling="no" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="WatchBar"><span>AlexBest</span></div>
+    </div>
+  </div>
+</div>
+      `;
+      document.getElementById('generatedCode').value = generatedHTML.trim();
+      document.getElementById('copyMessage').style.display = "none";
+    }
+
+    function copyCode() {
+      const textarea = document.getElementById("generatedCode");
+      textarea.select();
+      document.execCommand("copy");
+      document.getElementById('copyMessage').style.display = "block";
+    }
+  </script>
+
+</body>
+</html>
+
