@@ -107,10 +107,8 @@
     function publishPost() {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
-      const status = document.getElementById('status');
-
       if (!title || !content) {
-        status.innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
+        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
         return;
       }
 
@@ -122,19 +120,10 @@
       })
       .then(res => res.json())
       .then(data => {
-        const postUrl = data.url;
-        status.innerHTML = `
-          ✅ تم نشر المقال: 
-          <a href="${postUrl}" target="_blank" class="text-info">${postUrl}</a>
-          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${postUrl}')">
-            📋 نسخ الرابط
-          </button>
-        `;
+        document.getElementById('status').innerText = '✅ تم نشر المقال';
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
-      })
-      .catch(() => {
-        status.innerText = '❌ حدث خطأ أثناء النشر.';
+        showLink(data.url);
       })
       .finally(() => showSpinner(false));
     }
@@ -142,10 +131,8 @@
     function publishPage() {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
-      const status = document.getElementById('status');
-
       if (!title || !content) {
-        status.innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
+        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
         return;
       }
 
@@ -157,27 +144,27 @@
       })
       .then(res => res.json())
       .then(data => {
-        const pageUrl = data.url;
-        status.innerHTML = `
-          ✅ تم نشر الصفحة: 
-          <a href="${pageUrl}" target="_blank" class="text-info">${pageUrl}</a>
-          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${pageUrl}')">
-            📋 نسخ الرابط
-          </button>
-        `;
+        document.getElementById('status').innerText = '✅ تم نشر الصفحة';
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
-      })
-      .catch(() => {
-        status.innerText = '❌ حدث خطأ أثناء النشر.';
+        showLink(data.url);
       })
       .finally(() => showSpinner(false));
     }
 
+    function showLink(url) {
+      document.getElementById('postList').innerHTML = `
+        <div class="alert alert-success mt-3">
+          ✅ الرابط: <a href="${url}" target="_blank" class="text-info">${url}</a>
+          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${url}')">📋 نسخ الرابط</button>
+        </div>
+      `;
+    }
+
     function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        alert("✅ تم نسخ الرابط!");
-      });
+      navigator.clipboard.writeText(text)
+        .then(() => alert('✅ تم نسخ الرابط!'))
+        .catch(() => alert('❌ لم يتم النسخ.'));
     }
   </script>
 </body>
