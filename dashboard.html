@@ -25,9 +25,6 @@
       background-color: #292929;
       color: #fff;
     }
-    #status {
-      margin-top: 10px;
-    }
     .spinner {
       display: none;
       margin: 10px auto;
@@ -38,6 +35,16 @@
       padding: 15px;
       margin-bottom: 10px;
       border-radius: 6px;
+    }
+    .link-box {
+      background-color: #333;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      word-break: break-all;
+    }
+    .copy-btn {
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -104,6 +111,12 @@
                 .replace(/`/g, '&#96;');
     }
 
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('📋 تم نسخ الرابط إلى الحافظة!');
+      });
+    }
+
     function publishPost() {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -120,10 +133,10 @@
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById('status').innerText = '✅ تم نشر المقال';
+        const link = data.url;
+        document.getElementById('status').innerHTML = `✅ تم نشر المقال<br><div class="link-box">${link}<br><button class="btn btn-sm btn-outline-light copy-btn" onclick="copyToClipboard('${link}')">نسخ الرابط</button></div>`;
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
-        showLink(data.url);
       })
       .finally(() => showSpinner(false));
     }
@@ -144,27 +157,148 @@
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById('status').innerText = '✅ تم نشر الصفحة';
+        const link = data.url;
+        document.getElementById('status').innerHTML = `✅ تم نشر الصفحة<br><div class="link-box">${link}<br><button class="btn btn-sm btn-outline-light copy-btn" onclick="copyToClipboard('${link}')">نسخ الرابط</button></div>`;
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
-        showLink(data.url);
       })
       .finally(() => showSpinner(false));
     }
 
-    function showLink(url) {
-      document.getElementById('postList').innerHTML = `
-        <div class="alert alert-success mt-3">
-          ✅ الرابط: <a href="${url}" target="_blank" class="text-info">${url}</a>
-          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${url}')">📋 نسخ الرابط</button>
-        </div>
-      `;
+    function getPosts() {
+      showSpinner(true);
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById('postList');
+        list.innerHTML = '';
+        data.items?.forEach(post => {
+          list.innerHTML += `
+            <div class="card bg-dark text-white mb-3">
+              <div class="card-body">
+                <h5 class="card-title">${post.title}</h5>
+                <div class="link-box">${post.url}<br><button class="btn btn-sm btn-outline-light copy-btn" onclick="copyToClipboard('${post.url}')">نسخ الرابط</button></div>
+                <div class="d-flex gap-2 mt-2">
+                  <button class="btn btn-warning btn-sm" onclick="editPost('${post.id}', \`${escapeHTML(post.title)}\`, \`${escapeHTML(post.content)}\`)">
+                    <i class="fas fa-edit"></i> تعديل
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">
+                    <i class="fas fa-trash-alt"></i> حذف
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      })
+      .finally(() => showSpinner(false));
     }
 
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text)
-        .then(() => alert('✅ تم نسخ الرابط!'))
-        .catch(() => alert('❌ لم يتم النسخ.'));
+    function getPages() {
+      showSpinner(true);
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById('postList');
+        list.innerHTML = '';
+        data.items?.forEach(page => {
+          list.innerHTML += `
+            <div class="card bg-dark text-white mb-3">
+              <div class="card-body">
+                <h5 class="card-title">${page.title}</h5>
+                <div class="link-box">${page.url}<br><button class="btn btn-sm btn-outline-light copy-btn" onclick="copyToClipboard('${page.url}')">نسخ الرابط</button></div>
+                <div class="d-flex gap-2 mt-2">
+                  <button class="btn btn-warning btn-sm" onclick="editPage('${page.id}', \`${escapeHTML(page.title)}\`, \`${escapeHTML(page.content)}\`)">
+                    <i class="fas fa-edit"></i> تعديل
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">
+                    <i class="fas fa-trash-alt"></i> حذف
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      })
+      .finally(() => showSpinner(false));
+    }
+
+    function editPost(id, title, content) {
+      document.getElementById('postTitle').value = title;
+      document.getElementById('postContent').value = content;
+      document.getElementById('status').innerHTML = `<button class="btn btn-success mt-2" onclick="saveEdit('${id}')"><i class="fas fa-save"></i> حفظ التعديل</button>`;
+    }
+
+    function saveEdit(id) {
+      const title = document.getElementById('postTitle').value.trim();
+      const content = document.getElementById('postContent').value.trim();
+      if (!title || !content) {
+        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى.';
+        return;
+      }
+
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '✅ تم تعديل المقال';
+        getPosts();
+      });
+    }
+
+    function editPage(id, title, content) {
+      document.getElementById('postTitle').value = title;
+      document.getElementById('postContent').value = content;
+      document.getElementById('status').innerHTML = `<button class="btn btn-success mt-2" onclick="saveEditPage('${id}')"><i class="fas fa-save"></i> حفظ التعديل</button>`;
+    }
+
+    function saveEditPage(id) {
+      const title = document.getElementById('postTitle').value.trim();
+      const content = document.getElementById('postContent').value.trim();
+      if (!title || !content) {
+        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى.';
+        return;
+      }
+
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '✅ تم تعديل الصفحة';
+        getPages();
+      });
+    }
+
+    function deletePost(id) {
+      if (!confirm('هل أنت متأكد من حذف هذا المقال؟')) return;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '🗑️ تم حذف المقال';
+        getPosts();
+      });
+    }
+
+    function deletePage(id) {
+      if (!confirm('هل أنت متأكد من حذف هذه الصفحة؟')) return;
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(() => {
+        document.getElementById('status').innerText = '🗑️ تم حذف الصفحة';
+        getPages();
+      });
     }
   </script>
 </body>
