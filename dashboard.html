@@ -107,8 +107,10 @@
     function publishPost() {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
+      const status = document.getElementById('status');
+
       if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
+        status.innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
         return;
       }
 
@@ -118,10 +120,21 @@
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
       })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم نشر المقال';
+      .then(res => res.json())
+      .then(data => {
+        const postUrl = data.url;
+        status.innerHTML = `
+          ✅ تم نشر المقال: 
+          <a href="${postUrl}" target="_blank" class="text-info">${postUrl}</a>
+          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${postUrl}')">
+            📋 نسخ الرابط
+          </button>
+        `;
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
+      })
+      .catch(() => {
+        status.innerText = '❌ حدث خطأ أثناء النشر.';
       })
       .finally(() => showSpinner(false));
     }
@@ -129,8 +142,10 @@
     function publishPage() {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
+      const status = document.getElementById('status');
+
       if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
+        status.innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
         return;
       }
 
@@ -140,145 +155,28 @@
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content })
       })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم نشر الصفحة';
+      .then(res => res.json())
+      .then(data => {
+        const pageUrl = data.url;
+        status.innerHTML = `
+          ✅ تم نشر الصفحة: 
+          <a href="${pageUrl}" target="_blank" class="text-info">${pageUrl}</a>
+          <button class="btn btn-sm btn-outline-light ms-2" onclick="copyToClipboard('${pageUrl}')">
+            📋 نسخ الرابط
+          </button>
+        `;
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
       })
-      .finally(() => showSpinner(false));
-    }
-
-    function getPosts() {
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-        headers: { Authorization: 'Bearer ' + token }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const list = document.getElementById('postList');
-        list.innerHTML = '';
-        data.items?.forEach(post => {
-          list.innerHTML += `
-            <div class="card bg-dark text-white mb-3">
-              <div class="card-body">
-                <h5 class="card-title">${post.title}</h5>
-                <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm" onclick="editPost('${post.id}', \`${escapeHTML(post.title)}\`, \`${escapeHTML(post.content)}\`)">
-                    <i class="fas fa-edit"></i> تعديل
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">
-                    <i class="fas fa-trash-alt"></i> حذف
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
+      .catch(() => {
+        status.innerText = '❌ حدث خطأ أثناء النشر.';
       })
       .finally(() => showSpinner(false));
     }
 
-    function getPages() {
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/`, {
-        headers: { Authorization: 'Bearer ' + token }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const list = document.getElementById('postList');
-        list.innerHTML = '';
-        data.items?.forEach(page => {
-          list.innerHTML += `
-            <div class="card bg-dark text-white mb-3">
-              <div class="card-body">
-                <h5 class="card-title">${page.title}</h5>
-                <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm" onclick="editPage('${page.id}', \`${escapeHTML(page.title)}\`, \`${escapeHTML(page.content)}\`)">
-                    <i class="fas fa-edit"></i> تعديل
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">
-                    <i class="fas fa-trash-alt"></i> حذف
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function editPost(id, title, content) {
-      document.getElementById('postTitle').value = title;
-      document.getElementById('postContent').value = content;
-      document.getElementById('status').innerHTML = `<button class="btn btn-success mt-2" onclick="saveEdit('${id}')"><i class="fas fa-save"></i> حفظ التعديل</button>`;
-    }
-
-    function saveEdit(id) {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى.';
-        return;
-      }
-
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-        method: 'PUT',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم تعديل المقال';
-        getPosts();
-      });
-    }
-
-    function editPage(id, title, content) {
-      document.getElementById('postTitle').value = title;
-      document.getElementById('postContent').value = content;
-      document.getElementById('status').innerHTML = `<button class="btn btn-success mt-2" onclick="saveEditPage('${id}')"><i class="fas fa-save"></i> حفظ التعديل</button>`;
-    }
-
-    function saveEditPage(id) {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى.';
-        return;
-      }
-
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
-        method: 'PUT',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم تعديل الصفحة';
-        getPages();
-      });
-    }
-
-    function deletePost(id) {
-      if (!confirm('هل أنت متأكد من حذف هذا المقال؟')) return;
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '🗑️ تم حذف المقال';
-        getPosts();
-      });
-    }
-
-    function deletePage(id) {
-      if (!confirm('هل أنت متأكد من حذف هذه الصفحة؟')) return;
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '🗑️ تم حذف الصفحة';
-        getPages();
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("✅ تم نسخ الرابط!");
       });
     }
   </script>
