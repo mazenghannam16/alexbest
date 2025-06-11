@@ -1,16 +1,41 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>تسجيل الدخول - اليكس بست</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة التحكم | AlexBest</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
-<body>
-  <div class="container">
-    <h1>تسجيل الدخول إلى لوحة اليكس بست</h1>
-    <button onclick="loginWithGoogle()">تسجيل الدخول باستخدام Google</button>
-  </div>
+<body class="light">
+  <header>
+    <img src="assets/logo.png" alt="Logo" class="logo">
+    <h1>لوحة التحكم</h1>
+    <div class="theme-toggle" onclick="toggleTheme()">
+      <i class="fas fa-adjust"></i>
+    </div>
+  </header>
 
+  <main>
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="🔍 بحث...">
+      <button onclick="fetchPosts()">📄 تحميل المقالات</button>
+      <button onclick="fetchPages()">📘 تحميل الصفحات</button>
+      <button onclick="createNew()">➕ إنشاء جديد</button>
+    </div>
+
+    <div class="stats">
+      <p>📑 عدد المقالات: <span id="postCount">0</span></p>
+      <p>📄 عدد الصفحات: <span id="pageCount">0</span></p>
+      <p>🕒 آخر تحديث: <span id="lastUpdate">-</span></p>
+    </div>
+
+    <section id="contentGrid"></section>
+  </main>
+
+  <script src="config.js"></script>
   <script src="script.js"></script>
+  <script src="dark-mode.js"></script>
 </body>
 </html>
