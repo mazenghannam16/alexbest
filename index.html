@@ -1,41 +1,82 @@
+
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>لوحة التحكم | AlexBest</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <meta charset="UTF-8">
+  <title>نشر فيلم على بلوجر</title>
 </head>
-<body class="light">
-  <header>
-    <img src="assets/logo.png" alt="Logo" class="logo">
-    <h1>لوحة التحكم</h1>
-    <div class="theme-toggle" onclick="toggleTheme()">
-      <i class="fas fa-adjust"></i>
-    </div>
-  </header>
+<body>
+  <h2>لوحة التحكم - نشر فيلم</h2>
 
-  <main>
-    <div class="controls">
-      <input type="text" id="searchInput" placeholder="🔍 بحث...">
-      <button onclick="fetchPosts()">📄 تحميل المقالات</button>
-      <button onclick="fetchPages()">📘 تحميل الصفحات</button>
-      <button onclick="createNew()">➕ إنشاء جديد</button>
-    </div>
+  <button onclick="handleAuthClick()">تسجيل الدخول بحساب Google</button>
 
-    <div class="stats">
-      <p>📑 عدد المقالات: <span id="postCount">0</span></p>
-      <p>📄 عدد الصفحات: <span id="pageCount">0</span></p>
-      <p>🕒 آخر تحديث: <span id="lastUpdate">-</span></p>
-    </div>
+  <div id="form" style="display:none; margin-top: 20px;">
+    <input type="text" id="title" placeholder="اسم الفيلم"><br><br>
+    <textarea id="content" placeholder="وصف الفيلم"></textarea><br><br>
+    <input type="text" id="image" placeholder="رابط الصورة"><br><br>
+    <input type="text" id="watchLink" placeholder="رابط المشاهدة"><br><br>
+    <input type="text" id="downloadLink" placeholder="رابط التحميل"><br><br>
+    <button onclick="postToBlogger()">نشر</button>
+  </div>
 
-    <section id="contentGrid"></section>
-  </main>
+  <script>
+    const CLIENT_ID = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+    const API_KEY = ''; // مش محتاجه دلوقتي
+    const BLOG_ID = '277624714973052630';
+    const SCOPES = 'https://www.googleapis.com/auth/blogger';
 
-  <script src="config.js"></script>
-  <script src="script.js"></script>
-  <script src="dark-mode.js"></script>
+    let tokenClient;
+    let accessToken;
+
+    function handleAuthClick() {
+      google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse) => {
+          accessToken = tokenResponse.access_token;
+          document.getElementById('form').style.display = 'block';
+        }
+      }).requestAccessToken();
+    }
+
+    function postToBlogger() {
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const image = document.getElementById('image').value;
+      const watch = document.getElementById('watchLink').value;
+      const download = document.getElementById('downloadLink').value;
+
+      const fullContent = `
+        <img src="${image}" alt="صورة الفيلم"><br><br>
+        <p>${content}</p>
+        <p><a href="${watch}" target="_blank">مشاهدة</a></p>
+        <p><a href="${download}" target="_blank">تحميل</a></p>
+      `;
+
+      fetch(`https://www.googleapis.com/blogger/v3/blogs/${BLOG_ID}/posts/`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          kind: 'blogger#post',
+          title: title,
+          content: fullContent
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert("✅ تم نشر الفيلم بنجاح!");
+        console.log(data);
+      })
+      .catch(error => {
+        console.error("❌ خطأ أثناء النشر:", error);
+        alert("حدث خطأ أثناء النشر");
+      });
+    }
+  </script>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
