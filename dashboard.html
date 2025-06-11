@@ -2,75 +2,25 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>لوحة تحكم بلوجر</title>
-  <style>
-    body { font-family: Arial; padding: 20px; background: #f0f0f0; direction: rtl; }
-    .container { background: #fff; padding: 20px; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-    input, textarea, button { width: 100%; padding: 10px; margin: 10px 0; }
-    button { background: #4285f4; color: white; border: none; cursor: pointer; }
-    button:hover { background: #357ae8; }
-  </style>
+  <title>لوحة التحكم - MezoTV</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h2>لوحة تحكم النشر على بلوجر</h2>
-    <button id="loginBtn">تسجيل الدخول بجوجل</button>
+  <div class="dashboard">
+    <h1>لوحة تحكم اليكس بست</h1>
+    <p id="userEmail"></p>
 
-    <div id="formSection" style="display:none;">
-      <input type="text" id="title" placeholder="عنوان المقال">
-      <textarea id="content" rows="8" placeholder="محتوى المقال"></textarea>
-      <button onclick="publishPost()">نشر المقال</button>
+    <textarea id="postTitle" placeholder="عنوان المقال أو الصفحة"></textarea>
+    <textarea id="postContent" placeholder="محتوى المقال أو الصفحة"></textarea>
+
+    <div class="buttons">
+      <button onclick="publishPost()">📰 نشر كمقال</button>
+      <button onclick="publishPage()">📄 نشر كصفحة</button>
     </div>
+
+    <div id="status"></div>
   </div>
 
-  <script>
-    const clientId = "6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com";
-    const redirectUri = "https://alexbest.vercel.app/dashboard.html"; // لازم يكون نفسه في Google Console
-    let accessToken = "";
-
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=https://www.googleapis.com/auth/blogger`;
-      window.location.href = oauthUrl;
-    });
-
-    // بعد الرجوع من Google OAuth
-    window.onload = () => {
-      if (window.location.hash.includes("access_token")) {
-        const params = new URLSearchParams(window.location.hash.substring(1));
-        accessToken = params.get("access_token");
-        document.getElementById("formSection").style.display = "block";
-        document.getElementById("loginBtn").style.display = "none";
-      }
-    };
-
-    function publishPost() {
-      const title = document.getElementById("title").value;
-      const content = document.getElementById("content").value;
-      const blogId = "277624714973052630"
-
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + accessToken,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          kind: "blogger#post",
-          title: title,
-          content: content
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert("✅ تم نشر المقال بنجاح!");
-        console.log(data);
-      })
-      .catch(err => {
-        alert("❌ حدث خطأ أثناء النشر");
-        console.error(err);
-      });
-    }
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
