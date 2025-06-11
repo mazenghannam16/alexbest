@@ -712,37 +712,35 @@
               const htmlCode = `
 <yourdesigns>
   <mohamedsafyan>
-    <div class="post-wrapper">
+    <div class="post-single">
       <div class="container">
         <div class="single-poster">
           <div class="separator" style="clear: both;">
             <a href="${escapeHTML(image)}" style="display: block; padding: 1em 0; text-align: center;">
-              <img alt="${escapeHTML(title)}" border="0" data-original-height="545" data-original-width="400" src="${escapeHTML(image)}" />
+              <img alt="${escapeHTML(title)}" border="0" data-original-height="545" data-original-width="394" src="${escapeHTML(image)}" />
             </a>
           </div>
         </div>
-        <div class="post-details">
+        <div class="post-single-content">
           <h1 style="direction: rtl;">${escapeHTML(title)}</h1>
-          <div class="post-inner"></div>
-          <div class="post-watching">
+          <div class="post-Inner"></div>
+          <div class="post-single-watching">
             <div class="story">
               <h2>القصة</h2>
               <p>${escapeHTML(description)}</p>
             </div>
           </div>
-          <ul class="post-info-list">
+          <ul class="post-information-list">
             <li><span>الجودة:</span> <a href="#">1080p</a></li>
             <li><span>القسم:</span> <a href="${escapeHTML(sectionLink)}">${escapeHTML(section)}</a></li>
             <li><span>السنة:</span> <a href="#">${escapeHTML(year)}</a></li>
             <li><span>النوع:</span> <a href="#">${escapeHTML(genreNames)}</a></li>
             <li><span>تم إضافة ${type === 'series' ? 'المسلسل' : 'الفيلم'} بواسطة:</span> <a href="#">Mazen Mohamed</a></li>
           </ul>
-          <div class="post-actions">
-            ${trailerLink ? `<a href="${escapeHTML(trailerLink)}" class="btn btn-danger btn-sm mt-2">
-              <span><i class="fab fa-youtube"></i> مشاهدة الإعلان</span>
-            </a>` : ''}
-            <a href="#" class="btn btn-primary mt-2">
-              <span class="watch-now">مشاهدة ${type === 'series' ? 'المسلسل' : 'الفيلم'}</span>
+          <div class="post-single-buttons">
+            ${trailerLink ? `<a href="${escapeHTML(trailerLink)}" class="btn btn-danger btn-sm mt-2"><span><i class="fab fa-youtube"></i> مشاهدة الإعلان</span></a>` : ''}
+            <a href="#" class="WatchingArea Hoverable">
+              <span class="WatchNow"><em class="WatchIcon"></em> مشاهدة ${type === 'series' ? 'المسلسل' : 'الفيلم'} <i class="fa fa-angle-left"></i></span>
             </a>
           </div>
         </div>
