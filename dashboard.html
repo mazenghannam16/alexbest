@@ -127,7 +127,6 @@
     <div id="postList" class="mt-4"></div>
   </div>
 
-  <!-- قسم مولد كود HTML للمسلسل -->
   <div class="series-generator">
     <h1>مولد المسلسلات</h1>
     <div style="position: relative;">
@@ -140,7 +139,6 @@
     <button onclick="copySeriesCode()">نسخ الكود</button>
   </div>
 
-  <!-- قسم مولد كود HTML للأفلام -->
   <div class="movie-generator">
     <h1>مولد الأفلام</h1>
     <div style="position: relative;">
@@ -158,7 +156,6 @@
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
     let token = null;
 
-    // تحسين دالة escapeHTML للتعامل مع كل الأحرف المشكلة
     function escapeHTML(str) {
       if (!str) return '';
       return str.replace(/&/g, '&amp;')
@@ -167,6 +164,10 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;')
                 .replace(/`/g, '&#96;');
+    }
+
+    function safeAttr(str) {
+      return encodeURIComponent(str);
     }
 
     function signInWithGoogle() {
@@ -183,20 +184,14 @@
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert('📋 تم نسخ الرابط إلى الحافظة!');
+      }).catch(error => {
+        console.error('خطأ في النسخ:', error);
+        alert('⚠️ حدث خطأ أثناء النسخ.');
       });
     }
 
-    // دوال مساعدة للتعامل مع onclick لتجنب مشاكل الاقتباس
     function copyLink(url) {
       copyToClipboard(url);
-    }
-
-    function editPostHandler(id, title, content) {
-      editPost(id, title, content);
-    }
-
-    function editPageHandler(id, title, content) {
-      editPage(id, title, content);
     }
 
     function publishPost() {
@@ -279,7 +274,7 @@
           const escapedContent = escapeHTML(post.content);
           const escapedUrl = escapeHTML(post.url);
           list.innerHTML += `
-            <div class="card bg-dark text-white mb-3">
+            <div class="card bg-dark text-white mb-3" data-id="${post.id}" data-title="${safeAttr(post.title)}" data-content="${safeAttr(post.content)}">
               <div class="card-body">
                 <h5 class="card-title">${escapedTitle}</h5>
                 <div class="link-box">
@@ -287,7 +282,7 @@
                   <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapedUrl}')">نسخ الرابط</button>
                 </div>
                 <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm" onclick="editPostHandler('${post.id}', '${escapedTitle}', '${escapedContent}')">
+                  <button class="btn btn-warning btn-sm edit-post-btn">
                     <i class="fas fa-edit"></i> تعديل
                   </button>
                   <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">
@@ -297,6 +292,15 @@
               </div>
             </div>
           `;
+        });
+        document.querySelectorAll('.edit-post-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const card = btn.closest('.card');
+            const id = card.dataset.id;
+            const title = decodeURIComponent(card.dataset.title);
+            const content = decodeURIComponent(card.dataset.content);
+            editPost(id, title, content);
+          });
         });
       })
       .catch(error => {
@@ -320,7 +324,7 @@
           const escapedContent = escapeHTML(page.content);
           const escapedUrl = escapeHTML(page.url);
           list.innerHTML += `
-            <div class="card bg-dark text-white mb-3">
+            <div class="card bg-dark text-white mb-3" data-id="${page.id}" data-title="${safeAttr(page.title)}" data-content="${safeAttr(page.content)}">
               <div class="card-body">
                 <h5 class="card-title">${escapedTitle}</h5>
                 <div class="link-box">
@@ -328,7 +332,7 @@
                   <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapedUrl}')">نسخ الرابط</button>
                 </div>
                 <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm" onclick="editPageHandler('${page.id}', '${escapedTitle}', '${escapedContent}')">
+                  <button class="btn btn-warning btn-sm edit-page-btn">
                     <i class="fas fa-edit"></i> تعديل
                   </button>
                   <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">
@@ -338,6 +342,15 @@
               </div>
             </div>
           `;
+        });
+        document.querySelectorAll('.edit-page-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const card = btn.closest('.card');
+            const id = card.dataset.id;
+            const title = decodeURIComponent(card.dataset.title);
+            const content = decodeURIComponent(card.dataset.content);
+            editPage(id, title, content);
+          });
         });
       })
       .catch(error => {
@@ -458,7 +471,6 @@
     }
 
     function fetchSuggestions(type) {
-      console.log(`Fetching suggestions for ${type}`); // للتصحيح
       const query = type === 'series' ? 
         document.getElementById('seriesName')?.value.trim() : 
         document.getElementById('movieName')?.value.trim();
@@ -639,9 +651,7 @@
       alert("تم نسخ الكود!");
     }
 
-    // تهيئة event listeners بعد تحميل الصفحة
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOM loaded, initializing event listeners');
       token = window.location.hash.split('access_token=')[1]?.split('&')[0];
       if (token) {
         document.getElementById("loginBtn").style.display = "none";
@@ -661,13 +671,11 @@
       const movieInput = document.getElementById('movieName');
       if (seriesInput) {
         seriesInput.addEventListener('input', () => {
-          console.log('Series input triggered');
           fetchSuggestions('series');
         });
       }
       if (movieInput) {
         movieInput.addEventListener('input', () => {
-          console.log('Movie input triggered');
           fetchSuggestions('movie');
         });
       }
@@ -675,4 +683,3 @@
   </script>
 </body>
 </html>
-
