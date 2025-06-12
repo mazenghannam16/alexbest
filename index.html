@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -34,7 +35,6 @@
     let tokenClient;
     let accessToken = null;
 
-    // Google OAuth init
     window.onload = () => {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
@@ -119,7 +119,11 @@
           </ul>
           <div class="post-single-buttons">
             <a href="http://alexbesteg.blogspot.com/p/cleaner-2025.html" class="WatchingArea Hoverable">
-              <span class="WatchNow"><em class="WatchIcon"></em> مشاهدة الفيلم <i class="fa fa-angle-left"></i></span>
+              <span class="WatchNow">
+                <em class="WatchIcon"></em> 
+                مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}
+                <i class="fa fa-angle-left"></i>
+              </span>
             </a>
           </div>
         </div>
