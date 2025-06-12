@@ -8,9 +8,10 @@
   <style>
     body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
     input, button { padding: 10px; margin: 5px; }
-    .suggestions { background: white; border: 1px solid #ccc; position: absolute; z-index: 10; width: 300px; }
-    .suggestions div { padding: 5px; cursor: pointer; }
+    .suggestions { background: white; border: 1px solid #ccc; position: absolute; z-index: 10; width: 300px; max-height: 300px; overflow-y: auto; }
+    .suggestions div { padding: 5px; cursor: pointer; display: flex; align-items: center; }
     .suggestions div:hover { background: #eee; }
+    .suggestions img { width: 40px; height: auto; margin-left: 10px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -28,11 +29,11 @@ const blogId = '277624714973052630';
 const scope = 'https://www.googleapis.com/auth/blogger';
 let tokenClient;
 let gapiInited = false;
-let gisInited = false;
 let selectedMovie;
 
 function createHTMLFromMovie(movie, details, credits, trailerKey) {
-  const genres = details.genres.map(g => `<a href="#">${g.name}</a>`).join(' ');
+  const year = details.release_date.split('-')[0];
+  const genres = details.genres.map(g => `<a href="https://alexbesteg.blogspot.com/search/label/${encodeURIComponent(g.name)}">${g.name}</a>`).join(' ');
   const actors = credits.cast.slice(0, 5).map(actor => `
     <div>
       <div class="owl-actors-box">
@@ -61,9 +62,9 @@ function createHTMLFromMovie(movie, details, credits, trailerKey) {
           </div>
         </div>
         <ul class="post-information-list">
-          <li><span>الجودة :</span><a href="#">HD</a></li>
-          <li><span>القسم :</span><a href="#">افلام اجنبية</a></li>
-          <li><span>السنة :</span><a href="#">${details.release_date.split('-')[0]}</a></li>
+          <li><span>الجودة :</span><a href="https://alexbesteg.blogspot.com/search/label/HD">HD</a></li>
+          <li><span>القسم :</span><a href="https://alexbesteg.blogspot.com/search/label/افلام%20اجنبية">افلام اجنبية</a></li>
+          <li><span>السنة :</span><a href="https://alexbesteg.blogspot.com/search/label/${year}">${year}</a></li>
           <li><span>النوع :</span>${genres}</li>
         </ul>
         <div class="post-actors" dir="ltr">
@@ -126,7 +127,8 @@ async function fetchMovieDetails(id) {
 
 async function publishPost() {
   const htmlContent = await fetchMovieDetails(selectedMovie.id);
-  const token = gapi.client.getToken().access_token;
+  const token = gapi.client.getToken()?.access_token;
+  if (!token) return alert('لم يتم تسجيل الدخول بعد');
 
   const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
     method: 'POST',
@@ -144,17 +146,30 @@ async function publishPost() {
   alert('تم النشر: ' + data.url);
 }
 
+let typingTimeout;
 document.getElementById('search').addEventListener('input', async (e) => {
+  clearTimeout(typingTimeout);
   const query = e.target.value;
   const suggestionsBox = document.getElementById('suggestions');
+  suggestionsBox.innerHTML = '<div>جارٍ البحث...</div>';
+
   if (!query) return suggestionsBox.innerHTML = '';
 
-  const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`);
-  const data = await res.json();
+  typingTimeout = setTimeout(async () => {
+    const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`);
+    const data = await res.json();
 
-  suggestionsBox.innerHTML = data.results.slice(0, 5).map(movie => `
-    <div onclick='selectMovie(${JSON.stringify(movie)})'>${movie.title} (${movie.release_date?.split('-')[0] || '??'})</div>
-  `).join('');
+    if (data.results.length === 0) {
+      suggestionsBox.innerHTML = '<div>لا توجد نتائج لهذا الاسم</div>';
+      return;
+    }
+
+    suggestionsBox.innerHTML = data.results.slice(0, 5).map(movie => `
+      <div onclick='selectMovie(${JSON.stringify(movie)})'>
+        <img src="https://image.tmdb.org/t/p/w92${movie.poster_path}" alt=""> ${movie.title} (${movie.release_date?.split('-')[0] || '??'})
+      </div>
+    `).join('');
+  }, 500);
 });
 
 function selectMovie(movie) {
@@ -164,9 +179,11 @@ function selectMovie(movie) {
 }
 
 window.onload = () => {
-  gapi.load('client', () => {
-    gapi.client.init({}).then(() => gapiInited = true);
+  gapi.load('client', async () => {
+    await gapi.client.init({});
+    gapiInited = true;
   });
+
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope,
@@ -178,6 +195,7 @@ window.onload = () => {
 };
 
 function handleAuthClick() {
+  if (!tokenClient) return alert('جاري تحميل أدوات الدخول...');
   tokenClient.requestAccessToken();
 }
 </script>
