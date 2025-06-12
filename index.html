@@ -1,79 +1,147 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <title>تسجيل دخول الأدمن</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>نشر أفلام على بلوجر</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #121212;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .login-container {
-      background-color: #1e1e1e;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.6);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      border-radius: 5px;
-      border: none;
-      font-size: 16px;
-      background-color: #2e2e2e;
-      color: white;
-    }
-
-    button {
-      margin-top: 20px;
-      padding: 12px 25px;
-      background-color: #6200ee;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    .error {
-      margin-top: 15px;
-      color: red;
-      display: none;
-    }
+    body { font-family: Arial; direction: rtl; padding: 20px; }
+    .movie-card { border: 1px solid #ccc; margin: 10px 0; padding: 10px; background: #f9f9f9; }
+    .movie-card img { max-width: 150px; float: left; margin-left: 15px; }
+    .movie-info { overflow: hidden; }
+    button { padding: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <div class="login-container">
-    <h2>تسجيل دخول الأدمن</h2>
-    <input type="password" id="password" placeholder="ادخل كلمة المرور" />
-    <button onclick="checkPassword()">دخول</button>
-    <div class="error" id="error">كلمة المرور غير صحيحة</div>
-  </div>
+  <h2>بحث TMDB والنشر على بلوجر</h2>
+  <input type="text" id="movieName" placeholder="اكتب اسم الفيلم أو المسلسل">
+  <select id="mediaType">
+    <option value="movie">فيلم</option>
+    <option value="tv">مسلسل</option>
+  </select>
+  <button onclick="searchMovies()">بحث</button>
+
+  <div id="results"></div>
 
   <script>
-    function checkPassword() {
-      const password = document.getElementById('password').value;
-      const error = document.getElementById('error');
+    const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
+    const blogId = '277624714973052630';
+    const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+    const scope = 'https://www.googleapis.com/auth/blogger';
 
-      if (password === '0000') {
-        window.location.href = 'https://alexbest.vercel.app/dashboard.html';
+    let tokenClient;
+    let accessToken = null;
+
+    // 1. تحميل مكتبة OAuth
+    window.onload = () => {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: scope,
+        callback: (tokenResponse) => {
+          accessToken = tokenResponse.access_token;
+          alert("✅ تم تسجيل الدخول بنجاح");
+        }
+      });
+    };
+
+    function ensureAuth(callback) {
+      if (!accessToken) {
+        tokenClient.requestAccessToken();
       } else {
-        error.style.display = 'block';
+        callback();
+      }
+    }
+
+    async function searchMovies() {
+      const query = document.getElementById('movieName').value.trim();
+      const type = document.getElementById('mediaType').value;
+      const resDiv = document.getElementById('results');
+      resDiv.innerHTML = 'جاري البحث...';
+
+      const res = await fetch(`https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`);
+      const data = await res.json();
+
+      if (!data.results || data.results.length === 0) {
+        resDiv.innerHTML = 'لا توجد نتائج';
+        return;
+      }
+
+      resDiv.innerHTML = '';
+      data.results.slice(0, 5).forEach(item => {
+        const title = type === 'movie' ? item.title : item.name;
+        const year = (item.release_date || item.first_air_date || '').split('-')[0];
+        const overview = item.overview || 'لا يوجد وصف';
+        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '';
+
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.innerHTML = `
+          <div class="movie-info">
+            <img src="${poster}">
+            <h3>${title} (${year})</h3>
+            <p>${overview.slice(0, 150)}...</p>
+            <button onclick='ensureAuth(() => publishToBlogger(${JSON.stringify({ title, overview, poster, year, type })}))'>📤 نشر في بلوجر</button>
+          </div>
+        `;
+        resDiv.appendChild(card);
+      });
+    }
+
+    async function publishToBlogger(data) {
+      const postHtml = `
+<yourdesigns>
+  <mohamedsafyan>
+    <div class="post-single">
+      <div class="container">
+        <div class="single-poster">
+          <div class="separator" style="clear: both;">
+            <a href="${data.poster}" style="display: block; padding: 1em 0; text-align: center;">
+              <img alt="${data.title}" border="0" src="${data.poster}" />
+            </a>
+          </div>
+        </div>
+        <div class="post-single-content">
+          <h1 style="direction: rtl;">${data.title}</h1>
+          <div class="post-single-watching">
+            <div class="story">
+              <h2>القصة</h2>
+              <p>${data.overview}</p>
+            </div>
+          </div>
+          <ul class="post-information-list">
+            <li><span>الجودة:</span> 1080p</li>
+            <li><span>القسم:</span> ${data.type === 'movie' ? 'أفلام' : 'مسلسلات'}</li>
+            <li><span>السنة:</span> ${data.year}</li>
+            <li><span>النوع:</span> دراما</li>
+            <li><span>تم إضافته بواسطة:</span> Mazen Mohamed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </mohamedsafyan>
+</yourdesigns>`.trim();
+
+      const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          kind: 'blogger#post',
+          title: data.title,
+          content: postHtml
+        })
+      });
+
+      const result = await res.json();
+
+      if (result && result.url) {
+        alert("✅ تم النشر بنجاح! الرابط: " + result.url);
+      } else {
+        alert("❌ فشل النشر");
+        console.error(result);
       }
     }
   </script>
