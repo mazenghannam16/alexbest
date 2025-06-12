@@ -36,7 +36,7 @@
     .movie-info {
       overflow: hidden;
     }
-    button, select, input {
+    button, select, input, textarea {
       padding: 10px;
       margin: 5px;
       border-radius: 5px;
@@ -49,13 +49,14 @@
       color: #000;
       cursor: pointer;
     }
+    textarea {
+      width: 100%;
+      height: 80px;
+    }
     #message {
       margin-top: 20px;
-      font-size: 16px;
+      font-size: 18px;
       color: #00ff88;
-      background: #222;
-      padding: 10px;
-      border-radius: 8px;
     }
     .inline-message {
       display: inline-block;
@@ -74,10 +75,15 @@
   <br>
   <input type="text" id="movieName" placeholder="اكتب اسم الفيلم أو المسلسل">
   <select id="mediaType">
-    <option value="movie">فيلم</option>
-    <option value="tv">مسلسل</option>
+    <option value="movie">🎥 فيلم</option>
+    <option value="tv">📺 مسلسل</option>
   </select>
   <button onclick="searchMovies()"><i class="fas fa-search"></i> بحث</button>
+
+  <hr>
+  <h3>بحث جماعي</h3>
+  <textarea id="bulkInput" placeholder="اكتب أسماء الأفلام أو المسلسلات مفصولة بفواصل... مثال: ولاد رزق, الدشاش, Interstellar"></textarea>
+  <button onclick="bulkSearch()"><i class="fas fa-search"></i> بحث جماعي</button>
 
   <div id="results"></div>
   <div id="message"></div>
@@ -114,12 +120,8 @@
       const query = document.getElementById('movieName').value.trim();
       const type = document.getElementById('mediaType').value;
       const resDiv = document.getElementById('results');
-      const msg = document.getElementById('message');
 
-      if (page === 1) {
-        resDiv.innerHTML = '';
-        msg.innerHTML = '';
-      }
+      if (page === 1) resDiv.innerHTML = '';
 
       const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
       const res = await fetch(url);
@@ -130,7 +132,38 @@
         return;
       }
 
-      data.results.forEach(item => {
+      displayResults(data.results, type);
+
+      const loadMoreBtn = document.createElement('button');
+      loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
+      loadMoreBtn.onclick = () => {
+        loadMoreBtn.remove();
+        searchMovies(page + 1);
+      };
+      resDiv.appendChild(loadMoreBtn);
+    }
+
+    async function bulkSearch() {
+      const input = document.getElementById('bulkInput').value;
+      const names = input.split(',').map(name => name.trim()).filter(Boolean);
+      const type = document.getElementById('mediaType').value;
+      const resDiv = document.getElementById('results');
+      resDiv.innerHTML = '';
+
+      for (const name of names) {
+        const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(name)}&language=ar&page=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          displayResults(data.results.slice(0, 1), type); // فقط أول نتيجة لكل اسم
+        }
+      }
+    }
+
+    function displayResults(results, type) {
+      const resDiv = document.getElementById('results');
+
+      results.forEach(item => {
         const title = type === 'movie' ? item.title : item.name;
         const year = (item.release_date || item.first_air_date || '').split('-')[0];
         const overview = item.overview || 'لا يوجد وصف';
@@ -150,14 +183,6 @@
         `;
         resDiv.appendChild(card);
       });
-
-      const loadMoreBtn = document.createElement('button');
-      loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
-      loadMoreBtn.onclick = () => {
-        loadMoreBtn.remove();
-        searchMovies(page + 1);
-      };
-      resDiv.appendChild(loadMoreBtn);
     }
 
     async function publishToBlogger(data) {
