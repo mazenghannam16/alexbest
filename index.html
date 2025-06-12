@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
+
     body {
       font-family: 'Cairo', sans-serif;
       direction: rtl;
@@ -35,7 +36,7 @@
     .movie-info {
       overflow: hidden;
     }
-    button, select, input, textarea {
+    button, select, input {
       padding: 10px;
       margin: 5px;
       border-radius: 5px;
@@ -73,24 +74,43 @@
     .toast.error {
       background-color: #dc3545;
     }
+    #loadingMessage {
+      display: none;
+      position: fixed;
+      top: 50%;
+      right: 50%;
+      transform: translate(50%, -50%);
+      background: #222;
+      padding: 20px;
+      color: #fff;
+      font-size: 18px;
+      border-radius: 10px;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
   <h2><i class="fas fa-film"></i> لوحة نشر تلقائي من TMDB إلى بلوجر</h2>
   <div id="googleButton"></div>
   <br>
-  <input type="text" id="movieName" placeholder="اكتب اسم الفيلم أو المسلسل">
+
+  <h3>🔎 بحث فردي (للنشر السريع)</h3>
+  <input type="text" id="singleQuery" placeholder="اكتب اسم الفيلم أو المسلسل">
   <select id="mediaType">
     <option value="movie">🎥 فيلم</option>
     <option value="tv">📺 مسلسل</option>
   </select>
-  <button onclick="searchMovies()"><i class="fas fa-search"></i> بحث</button>
-
-  <br><br>
-  <textarea id="multiSearch" placeholder="اكتب أسماء الأفلام أو المسلسلات مفصولة بفاصلة مثلاً: ولاد رزق, الدساس, Interstellar" rows="3" style="width:100%; margin-top:10px;"></textarea>
-  <button onclick="multiSearchHandler()"><i class="fas fa-clone"></i> بحث متعدد</button>
-
+  <button onclick="searchMovies(document.getElementById('singleQuery').value)"><i class="fas fa-search"></i> بحث</button>
   <div id="results"></div>
+
+  <hr style="margin: 30px 0; border: 1px solid #fff;">
+
+  <h3>📂 بحث مجمع (لأسماء متعددة)</h3>
+  <input type="text" id="bulkMovieNames" placeholder="اكتب عدة أسماء مفصولة بفاصلة">
+  <button onclick="searchBulkMovies()"><i class="fas fa-search"></i> بحث مجمع</button>
+  <div id="bulkResults"></div>
+
+  <div id="loadingMessage">⏳ جاري النشر إلى بلوجر...</div>
 
   <script>
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
@@ -125,6 +145,7 @@
       toast.className = 'toast' + (isError ? ' error' : '');
       toast.innerText = message;
       document.body.appendChild(toast);
+
       setTimeout(() => { toast.style.opacity = 1; }, 100);
       setTimeout(() => {
         toast.style.opacity = 0;
@@ -132,37 +153,23 @@
       }, 3000);
     }
 
-    function multiSearchHandler() {
-      const names = document.getElementById('multiSearch').value.split(',').map(name => name.trim()).filter(Boolean);
-      const type = document.getElementById('mediaType').value;
-
-      if (!names.length) {
-        showToast('❌ أدخل أسماء صحيحة مفصولة بفاصلة.', true);
-        return;
-      }
-
-      document.getElementById('results').innerHTML = '';
-
-      names.forEach(name => {
-        document.getElementById('movieName').value = name;
-        searchMovies(1, true); // نمرر true لنعرف أنه جاي من بحث متعدد
-      });
+    function searchBulkMovies() {
+      const input = document.getElementById('bulkMovieNames').value.trim();
+      const names = input.split(',').map(name => name.trim()).filter(name => name);
+      const resultsContainer = document.getElementById('bulkResults');
+      resultsContainer.innerHTML = '';
+      names.forEach(name => searchMovies(name, 1, resultsContainer));
     }
 
-    async function searchMovies(page = 1, isMulti = false) {
-      const query = document.getElementById('movieName').value.trim();
+    async function searchMovies(query, page = 1, container = null) {
       const type = document.getElementById('mediaType').value;
-      const resDiv = document.getElementById('results');
-
-      if (page === 1 && !isMulti) resDiv.innerHTML = '';
-
+      const resDiv = container || document.getElementById('results');
       const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
-
       const res = await fetch(url);
       const data = await res.json();
 
       if (!data.results || data.results.length === 0) {
-        resDiv.innerHTML += '<p>❌ لا توجد نتائج.</p>';
+        resDiv.innerHTML += `<p>❌ لا توجد نتائج لـ "${query}".</p>`;
         return;
       }
 
@@ -186,20 +193,11 @@
         `;
         resDiv.appendChild(card);
       });
-
-      // 👇 شرط يمنع ظهور زر تحميل المزيد في البحث المتعدد
-      if (!isMulti && !document.getElementById('multiSearch').value.trim()) {
-        const loadMoreBtn = document.createElement('button');
-        loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
-        loadMoreBtn.onclick = () => {
-          loadMoreBtn.remove();
-          searchMovies(page + 1);
-        };
-        resDiv.appendChild(loadMoreBtn);
-      }
     }
 
     async function publishToBlogger(data) {
+      document.getElementById('loadingMessage').style.display = 'block';
+
       const postHtml = `
 <yourdesigns>
   <mohamedsafyan>
@@ -254,6 +252,7 @@
         })
       });
 
+      document.getElementById('loadingMessage').style.display = 'none';
       const result = await res.json();
 
       if (result && result.url) {
