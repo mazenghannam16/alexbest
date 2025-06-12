@@ -74,6 +74,7 @@
 <input type="text" id="search" placeholder="اكتب اسم الفيلم...">
 <div id="suggestions" class="suggestions"></div>
 <button onclick="handleAuthClick()">تسجيل الدخول لجوجل</button>
+<button onclick="publishPost()">نشر في بلوجر</button>
 <div id="loadingSpinner">جاري النشر...</div>
 
 <div id="postsList">
@@ -83,99 +84,6 @@
 </div>
 
 <script>
-const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
-const blogId = '277624714973052630';
-const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
-const scope = 'https://www.googleapis.com/auth/blogger';
-
-let gapiInited = false;
-let tokenClient;
-let selectedMovie = null;
-
-const searchInput = document.getElementById('search');
-const suggestionsBox = document.getElementById('suggestions');
-let debounceTimer;
-
-searchInput.addEventListener('input', () => {
-  const query = searchInput.value.trim();
-  suggestionsBox.innerHTML = '';
-  if (!query) {
-    suggestionsBox.style.display = 'none';
-    return;
-  }
-
-  suggestionsBox.innerHTML = '<div>🔍 جارٍ البحث...</div>';
-  suggestionsBox.style.display = 'block';
-
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => searchMovies(query), 500);
-});
-
-async function searchMovies(query) {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`);
-    const data = await res.json();
-
-    if (!data.results || data.results.length === 0) {
-      suggestionsBox.innerHTML = '<div>❌ لا توجد نتائج لهذا الاسم</div>';
-      return;
-    }
-
-    suggestionsBox.innerHTML = '';
-    data.results.slice(0, 7).forEach(movie => {
-      const year = movie.release_date ? movie.release_date.slice(0, 4) : 'N/A';
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <img src="https://image.tmdb.org/t/p/w92${movie.poster_path}" alt="${movie.title}">
-        <span>${movie.title} (${year})</span>
-        <button onclick="publishMovie(${movie.id})">نشر</button>
-      `;
-      suggestionsBox.appendChild(div);
-    });
-  } catch (err) {
-    suggestionsBox.innerHTML = '<div>❌ حدث خطأ أثناء البحث</div>';
-  }
-}
-
-async function publishMovie(movieId) {
-  document.getElementById('loadingSpinner').style.display = 'block';
-  const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${apiKey}&append_to_response=videos`);
-  const movie = await res.json();
-
-  const year = movie.release_date ? movie.release_date.slice(0, 4) : 'N/A';
-  const title = movie.title;
-  const overview = movie.overview;
-  const poster = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-  const youtubeKey = movie.videos.results.find(v => v.site === 'YouTube')?.key || '';
-
-  const content = `
-    <h2>${title} (${year})</h2>
-    <img src="${poster}" style="max-width:100%" />
-    <p>${overview}</p>
-    ${youtubeKey ? `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${youtubeKey}" frameborder="0" allowfullscreen></iframe>` : ''}
-    <p><a href="https://alexbesteg.blogspot.com/search/label/${year}" target="_blank">أفلام ${year}</a></p>
-  `;
-
-  const token = gapi.client.getToken()?.access_token;
-  if (!token) return;
-
-  await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      title,
-      content
-    })
-  });
-
-  document.getElementById('loadingSpinner').style.display = 'none';
-  alert('✅ تم نشر الفيلم بنجاح');
-  loadPosts();
-}
-
 let posts = [];
 let displayedCount = 0;
 
@@ -189,7 +97,6 @@ async function loadPosts() {
   const data = await res.json();
   posts = data.items || [];
   displayedCount = 0;
-  document.getElementById('postsContainer').innerHTML = '';
   renderPosts();
 }
 
@@ -232,14 +139,6 @@ async function deletePost(id) {
   document.getElementById('postsContainer').innerHTML = '';
   displayedCount = 0;
   renderPosts();
-}
-
-function handleAuthClick() {
-  if (!tokenClient) {
-    alert('يرجى انتظار تهيئة Google API');
-    return;
-  }
-  tokenClient.requestAccessToken();
 }
 
 window.onload = () => {
