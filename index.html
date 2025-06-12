@@ -2,265 +2,184 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة نشر أفلام ومسلسلات على بلوجر</title>
+  <title>TMDB to Blogger</title>
+  <script src="https://apis.google.com/js/api.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
-
-    body {
-      font-family: 'Cairo', sans-serif;
-      direction: rtl;
-      background: #3f255f;
-      color: #fff;
-      padding: 20px;
-    }
-    h2 {
-      color: #ffd700;
-      font-size: 28px;
-    }
-    .movie-card {
-      background: #1e1e1e;
-      border-radius: 10px;
-      margin: 10px 0;
-      padding: 15px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-    }
-    .movie-card img {
-      max-width: 120px;
-      float: left;
-      margin-left: 15px;
-      border-radius: 5px;
-    }
-    .movie-info {
-      overflow: hidden;
-    }
-    button, select, input {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-      font-family: 'Cairo', sans-serif;
-      font-weight: bold;
-    }
-    button {
-      background: #ffd700;
-      color: #000;
-      cursor: pointer;
-    }
-    .inline-message {
-      display: inline-block;
-      margin-right: 10px;
-      font-size: 14px;
-      background: #28a745;
-      padding: 5px 10px;
-      border-radius: 4px;
-    }
-    .toast {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background-color: #28a745;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 16px;
-      z-index: 9999;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    .toast.error {
-      background-color: #dc3545;
-    }
-    #loadingMessage {
-      display: none;
-      position: fixed;
-      top: 50%;
-      right: 50%;
-      transform: translate(50%, -50%);
-      background: #222;
-      padding: 20px;
-      color: #fff;
-      font-size: 18px;
-      border-radius: 10px;
-      z-index: 9999;
-    }
+    body { font-family: sans-serif; background: #f9f9f9; padding: 20px; }
+    input, button { padding: 10px; margin: 5px; }
+    .suggestions { background: white; border: 1px solid #ccc; position: absolute; z-index: 10; width: 300px; }
+    .suggestions div { padding: 5px; cursor: pointer; }
+    .suggestions div:hover { background: #eee; }
   </style>
 </head>
 <body>
-  <h2><i class="fas fa-film"></i> لوحة نشر تلقائي من TMDB إلى بلوجر</h2>
-  <div id="googleButton"></div>
-  <br>
 
-  <h3>🔎 بحث فردي (للنشر السريع)</h3>
-  <input type="text" id="singleQuery" placeholder="اكتب اسم الفيلم أو المسلسل">
-  <select id="mediaType">
-    <option value="movie">🎥 فيلم</option>
-    <option value="tv">📺 مسلسل</option>
-  </select>
-  <button onclick="searchMovies(document.getElementById('singleQuery').value)"><i class="fas fa-search"></i> بحث</button>
-  <div id="results"></div>
+<h2>ابحث عن فيلم</h2>
+<input type="text" id="search" placeholder="اكتب اسم الفيلم...">
+<div id="suggestions" class="suggestions"></div>
+<button onclick="handleAuthClick()">تسجيل الدخول لجوجل</button>
+<button onclick="publishPost()">نشر في بلوجر</button>
 
-  <hr style="margin: 30px 0; border: 1px solid #fff;">
+<script>
+const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
+const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+const blogId = '277624714973052630';
+const scope = 'https://www.googleapis.com/auth/blogger';
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+let selectedMovie;
 
-  <h3>📂 بحث مجمع (لأسماء متعددة)</h3>
-  <input type="text" id="bulkMovieNames" placeholder="اكتب عدة أسماء مفصولة بفاصلة">
-  <button onclick="searchBulkMovies()"><i class="fas fa-search"></i> بحث مجمع</button>
-  <div id="bulkResults"></div>
+function createHTMLFromMovie(movie, details, credits, trailerKey) {
+  const genres = details.genres.map(g => `<a href="#">${g.name}</a>`).join(' ');
+  const actors = credits.cast.slice(0, 5).map(actor => `
+    <div>
+      <div class="owl-actors-box">
+        <div class="owl-actors-thumb">
+          <img src="https://image.tmdb.org/t/p/w300${actor.profile_path}" alt="${actor.name}">
+        </div>
+        <span>${actor.name}</span>
+      </div>
+    </div>
+  `).join('');
 
-  <div id="loadingMessage">⏳ جاري النشر إلى بلوجر...</div>
-
-  <script>
-    const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
-    const blogId = '277624714973052630';
-    const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
-    const scope = 'https://www.googleapis.com/auth/blogger';
-
-    let tokenClient;
-    let accessToken = null;
-
-    window.onload = () => {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: scope,
-        callback: (tokenResponse) => {
-          accessToken = tokenResponse.access_token;
-          document.getElementById('googleButton').innerHTML = '<span class="inline-message">✅ تم تسجيل الدخول</span>';
-        }
-      });
-    };
-
-    function ensureAuth(callback) {
-      if (!accessToken) {
-        tokenClient.requestAccessToken();
-      } else {
-        callback();
-      }
-    }
-
-    function showToast(message, isError = false) {
-      const toast = document.createElement('div');
-      toast.className = 'toast' + (isError ? ' error' : '');
-      toast.innerText = message;
-      document.body.appendChild(toast);
-
-      setTimeout(() => { toast.style.opacity = 1; }, 100);
-      setTimeout(() => {
-        toast.style.opacity = 0;
-        setTimeout(() => toast.remove(), 500);
-      }, 3000);
-    }
-
-    function searchBulkMovies() {
-      const input = document.getElementById('bulkMovieNames').value.trim();
-      const names = input.split(',').map(name => name.trim()).filter(name => name);
-      const resultsContainer = document.getElementById('bulkResults');
-      resultsContainer.innerHTML = '';
-      names.forEach(name => searchMovies(name, 1, resultsContainer));
-    }
-
-    async function searchMovies(query, page = 1, container = null) {
-      const type = document.getElementById('mediaType').value;
-      const resDiv = container || document.getElementById('results');
-      const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!data.results || data.results.length === 0) {
-        resDiv.innerHTML += `<p>❌ لا توجد نتائج لـ "${query}".</p>`;
-        return;
-      }
-
-      data.results.forEach(item => {
-        const title = type === 'movie' ? item.title : item.name;
-        const year = (item.release_date || item.first_air_date || '').split('-')[0];
-        const overview = item.overview || 'لا يوجد وصف';
-        const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '';
-
-        const card = document.createElement('div');
-        card.className = 'movie-card';
-        card.innerHTML = `
-          <div class="movie-info">
-            <img src="${poster}" alt="">
-            <h3>${title} (${year})</h3>
-            <p>${overview.slice(0, 150)}...</p>
-            <button onclick='ensureAuth(() => publishToBlogger(${JSON.stringify({ title, overview, poster, year, type })}))'>
-              <i class="fas fa-upload"></i> نشر إلى بلوجر
-            </button>
+  return `
+  <div class="post-single">
+    <div class="container">
+      <div class="single-poster">
+        <div class="separator" style="clear: both;"><a href="https://image.tmdb.org/t/p/original${movie.poster_path}" style="display: block; padding: 1em 0; text-align: center; "><img alt="" border="0" src="https://image.tmdb.org/t/p/original${movie.poster_path}"/></a></div>
+      </div>
+      <div class="post-single-content">
+        <h1>مشاهدة فيلم ${details.title} مترجم</h1>
+        <h2><span>بالعربي :</span> ${details.original_title}</h2>
+        <div class="post-Inner"></div>
+        <div class="post-single-watching">
+          <div class="story">
+            <h2>القصة</h2>
+            <p>${details.overview}</p>
           </div>
-        `;
-        resDiv.appendChild(card);
-      });
-    }
+        </div>
+        <ul class="post-information-list">
+          <li><span>الجودة :</span><a href="#">HD</a></li>
+          <li><span>القسم :</span><a href="#">افلام اجنبية</a></li>
+          <li><span>السنة :</span><a href="#">${details.release_date.split('-')[0]}</a></li>
+          <li><span>النوع :</span>${genres}</li>
+        </ul>
+        <div class="post-actors" dir="ltr">
+          <h4><span>فريق</span> <em>العمل</em></h4>
+          <div class='owl-carousel' id='owl-slide'>${actors}</div>
+        </div>
+      </div>
 
-    async function publishToBlogger(data) {
-      document.getElementById('loadingMessage').style.display = 'block';
-
-      const postHtml = `
-<yourdesigns>
-  <mohamedsafyan>
-    <div class="post-single">
-      <div class="container">
-        <div class="single-poster">
-          <div class="separator" style="clear: both;">
-            <a href="${data.poster}" style="display: block; padding: 1em 0; text-align: center;">
-              <img alt="${data.title}" src="${data.poster}" />
+      <div class="post-single-side">
+        <div class="StatsMain">
+          <div class="SingleContentSideTitle">
+            <span>مشاهدة العرض</span>
+            <a target="_blank" class="IMDBButton" href="https://www.imdb.com/title/${details.imdb_id}/">
+              <em>علي</em>IMDb
             </a>
           </div>
         </div>
-        <div class="post-single-content">
-          <h1>${data.title}</h1>
-          <div class="post-single-watching">
-            <div class="story">
-              <h2>القصة</h2>
-              <p>${data.overview}</p>
-            </div>
+        <a href="#TrailerPopoverInner">
+          <div class="dropbtn WatchingArea TrailerColorButton Hoverable">
+            <span><i class="fa fa-youtube-play"></i> مشاهدة إعلان العرض<i class="fa fa-angle-left"></i></span>
           </div>
-          <ul class="post-information-list">
-            <li><span>الجودة:</span> 1080p</li>
-            <li><span>القسم:</span> ${data.type === 'movie' ? 'أفلام' : 'مسلسلات'}</li>
-            <li><span>السنة:</span> ${data.year}</li>
-            <li><span>تمت الإضافة بواسطة:</span> Mazen Mohamed</li>
-          </ul>
-          <div class="post-single-buttons">
-            <a href="http://alexbesteg.blogspot.com/p/cleaner-2025.html" class="WatchingArea Hoverable">
-              <span class="WatchNow">
-                <em class="WatchIcon"></em>
-                مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}
-                <i class="fa fa-angle-left"></i>
-              </span>
-            </a>
+        </a>
+        <a href="https://cinema4ueg.blogspot.com/p/${details.title.replace(/\s+/g,'-').toLowerCase()}.html">
+          <div class="WatchingArea Hoverable">
+            <span class="WatchNow"><em class="WatchIcon"></em> مشاهدة و تحميل الآن <i class="fa fa-angle-left"></i></span>
+          </div>
+        </a>
+        <div class="ImportantButtons">
+          <div class="FavoriteButton">
+            <a href="#" target="_blank" class='Hoverable'><i class="fa fa-star-o"></i><span>جميع أجزاء الفيلم</span></a>
+          </div>
+          <div class="ReportButton">
+            <a href="#" target="_blank" class='Hoverable'><i class="fa fa-flag"></i><span>تبليغ عن الرابط</span></a>
           </div>
         </div>
       </div>
+
+      <div class="TrailerPopover dropdown-content" id="myTrailer">
+        <div class="TrailerPopoverInner" id="TrailerPopoverInner">
+          <iframe src="https://www.youtube.com/embed/${trailerKey}" allowfullscreen width="100%" height="100%"></iframe>
+        </div>
+      </div>
     </div>
-  </mohamedsafyan>
-</yourdesigns>`;
+  </div>
+  `;
+}
 
-      const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          kind: 'blogger#post',
-          title: `مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}`,
-          content: postHtml
-        })
-      });
+async function fetchMovieDetails(id) {
+  const [detailsRes, creditsRes, videoRes] = await Promise.all([
+    fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=ar`),
+    fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${apiKey}&language=ar`),
+    fetch(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${apiKey}&language=ar`)
+  ]);
+  const details = await detailsRes.json();
+  const credits = await creditsRes.json();
+  const videos = await videoRes.json();
+  const trailer = videos.results.find(v => v.type === 'Trailer');
+  return createHTMLFromMovie(selectedMovie, details, credits, trailer?.key || '');
+}
 
-      document.getElementById('loadingMessage').style.display = 'none';
-      const result = await res.json();
+async function publishPost() {
+  const htmlContent = await fetchMovieDetails(selectedMovie.id);
+  const token = gapi.client.getToken().access_token;
 
-      if (result && result.url) {
-        showToast(`✅ تم نشر ${data.type === 'movie' ? 'الفيلم' : 'المسلسل'}: ${data.title}`);
-      } else {
-        showToast('❌ فشل النشر، حاول مرة أخرى.', true);
-      }
+  const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      title: selectedMovie.title,
+      content: htmlContent
+    })
+  });
+
+  const data = await res.json();
+  alert('تم النشر: ' + data.url);
+}
+
+document.getElementById('search').addEventListener('input', async (e) => {
+  const query = e.target.value;
+  const suggestionsBox = document.getElementById('suggestions');
+  if (!query) return suggestionsBox.innerHTML = '';
+
+  const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`);
+  const data = await res.json();
+
+  suggestionsBox.innerHTML = data.results.slice(0, 5).map(movie => `
+    <div onclick='selectMovie(${JSON.stringify(movie)})'>${movie.title} (${movie.release_date?.split('-')[0] || '??'})</div>
+  `).join('');
+});
+
+function selectMovie(movie) {
+  selectedMovie = movie;
+  document.getElementById('search').value = movie.title;
+  document.getElementById('suggestions').innerHTML = '';
+}
+
+window.onload = () => {
+  gapi.load('client', () => {
+    gapi.client.init({}).then(() => gapiInited = true);
+  });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope,
+    callback: (tokenResponse) => {
+      gapi.client.setToken(tokenResponse);
+      alert('تم تسجيل الدخول بنجاح');
     }
-  </script>
+  });
+};
+
+function handleAuthClick() {
+  tokenClient.requestAccessToken();
+}
+</script>
 </body>
 </html>
