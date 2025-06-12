@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
-
     body {
       font-family: 'Cairo', sans-serif;
       direction: rtl;
@@ -126,7 +125,6 @@
       toast.className = 'toast' + (isError ? ' error' : '');
       toast.innerText = message;
       document.body.appendChild(toast);
-
       setTimeout(() => { toast.style.opacity = 1; }, 100);
       setTimeout(() => {
         toast.style.opacity = 0;
@@ -147,16 +145,16 @@
 
       names.forEach(name => {
         document.getElementById('movieName').value = name;
-        searchMovies();
+        searchMovies(1, true); // نمرر true لنعرف أنه جاي من بحث متعدد
       });
     }
 
-    async function searchMovies(page = 1) {
+    async function searchMovies(page = 1, isMulti = false) {
       const query = document.getElementById('movieName').value.trim();
       const type = document.getElementById('mediaType').value;
       const resDiv = document.getElementById('results');
 
-      if (page === 1) resDiv.innerHTML = '';
+      if (page === 1 && !isMulti) resDiv.innerHTML = '';
 
       const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
 
@@ -189,13 +187,16 @@
         resDiv.appendChild(card);
       });
 
-      const loadMoreBtn = document.createElement('button');
-      loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
-      loadMoreBtn.onclick = () => {
-        loadMoreBtn.remove();
-        searchMovies(page + 1);
-      };
-      resDiv.appendChild(loadMoreBtn);
+      // 👇 شرط يمنع ظهور زر تحميل المزيد في البحث المتعدد
+      if (!isMulti && !document.getElementById('multiSearch').value.trim()) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
+        loadMoreBtn.onclick = () => {
+          loadMoreBtn.remove();
+          searchMovies(page + 1);
+        };
+        resDiv.appendChild(loadMoreBtn);
+      }
     }
 
     async function publishToBlogger(data) {
