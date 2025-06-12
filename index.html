@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
+
     body {
       font-family: 'Cairo', sans-serif;
       direction: rtl;
@@ -50,8 +51,11 @@
     }
     #message {
       margin-top: 20px;
-      font-size: 18px;
+      font-size: 16px;
       color: #00ff88;
+      background: #222;
+      padding: 10px;
+      border-radius: 8px;
     }
     .inline-message {
       display: inline-block;
@@ -65,23 +69,28 @@
 </head>
 <body>
   <h2><i class="fas fa-film"></i> لوحة نشر تلقائي من TMDB إلى بلوجر</h2>
+
   <div id="googleButton"></div>
   <br>
   <input type="text" id="movieName" placeholder="اكتب اسم الفيلم أو المسلسل">
   <select id="mediaType">
-    <option value="movie">🎥 فيلم</option>
-    <option value="tv">📺 مسلسل</option>
+    <option value="movie">فيلم</option>
+    <option value="tv">مسلسل</option>
   </select>
   <button onclick="searchMovies()"><i class="fas fa-search"></i> بحث</button>
+
   <div id="results"></div>
   <div id="message"></div>
+
   <script>
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
     const blogId = '277624714973052630';
     const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
     const scope = 'https://www.googleapis.com/auth/blogger';
+
     let tokenClient;
     let accessToken = null;
+
     window.onload = () => {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
@@ -92,6 +101,7 @@
         }
       });
     };
+
     function ensureAuth(callback) {
       if (!accessToken) {
         tokenClient.requestAccessToken();
@@ -99,23 +109,33 @@
         callback();
       }
     }
+
     async function searchMovies(page = 1) {
       const query = document.getElementById('movieName').value.trim();
       const type = document.getElementById('mediaType').value;
       const resDiv = document.getElementById('results');
-      if (page === 1) resDiv.innerHTML = '';
+      const msg = document.getElementById('message');
+
+      if (page === 1) {
+        resDiv.innerHTML = '';
+        msg.innerHTML = '';
+      }
+
       const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
       const res = await fetch(url);
       const data = await res.json();
+
       if (!data.results || data.results.length === 0) {
         resDiv.innerHTML += '<p>❌ لا توجد نتائج.</p>';
         return;
       }
+
       data.results.forEach(item => {
         const title = type === 'movie' ? item.title : item.name;
         const year = (item.release_date || item.first_air_date || '').split('-')[0];
         const overview = item.overview || 'لا يوجد وصف';
         const poster = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '';
+
         const card = document.createElement('div');
         card.className = 'movie-card';
         card.innerHTML = `
@@ -130,6 +150,7 @@
         `;
         resDiv.appendChild(card);
       });
+
       const loadMoreBtn = document.createElement('button');
       loadMoreBtn.innerHTML = '<i class="fas fa-plus"></i> تحميل المزيد';
       loadMoreBtn.onclick = () => {
@@ -138,8 +159,49 @@
       };
       resDiv.appendChild(loadMoreBtn);
     }
+
     async function publishToBlogger(data) {
-      const postHtml = `<yourdesigns><mohamedsafyan><div class="post-single"><div class="container"><div class="single-poster"><div class="separator" style="clear: both;"><a href="${data.poster}" style="display: block; padding: 1em 0; text-align: center;"><img alt="${data.title}" src="${data.poster}" /></a></div></div><div class="post-single-content"><h1>${data.title}</h1><div class="post-single-watching"><div class="story"><h2>القصة</h2><p>${data.overview}</p></div></div><ul class="post-information-list"><li><span>الجودة:</span> 1080p</li><li><span>القسم:</span> ${data.type === 'movie' ? 'أفلام' : 'مسلسلات'}</li><li><span>السنة:</span> ${data.year}</li><li><span>تمت الإضافة بواسطة:</span> Mazen Mohamed</li></ul><div class="post-single-buttons"><a href="http://alexbesteg.blogspot.com/p/cleaner-2025.html" class="WatchingArea Hoverable"><span class="WatchNow"><em class="WatchIcon"></em>مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}<i class="fa fa-angle-left"></i></span></a></div></div></div></div></mohamedsafyan></yourdesigns>`;
+      const postHtml = `
+<yourdesigns>
+  <mohamedsafyan>
+    <div class="post-single">
+      <div class="container">
+        <div class="single-poster">
+          <div class="separator" style="clear: both;">
+            <a href="${data.poster}" style="display: block; padding: 1em 0; text-align: center;">
+              <img alt="${data.title}" src="${data.poster}" />
+            </a>
+          </div>
+        </div>
+        <div class="post-single-content">
+          <h1>${data.title}</h1>
+          <div class="post-single-watching">
+            <div class="story">
+              <h2>القصة</h2>
+              <p>${data.overview}</p>
+            </div>
+          </div>
+          <ul class="post-information-list">
+            <li><span>الجودة:</span> 1080p</li>
+            <li><span>القسم:</span> ${data.type === 'movie' ? 'أفلام' : 'مسلسلات'}</li>
+            <li><span>السنة:</span> ${data.year}</li>
+            <li><span>تمت الإضافة بواسطة:</span> Mazen Mohamed</li>
+          </ul>
+          <div class="post-single-buttons">
+            <a href="http://alexbesteg.blogspot.com/p/cleaner-2025.html" class="WatchingArea Hoverable">
+              <span class="WatchNow">
+                <em class="WatchIcon"></em>
+                مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}
+                <i class="fa fa-angle-left"></i>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mohamedsafyan>
+</yourdesigns>`;
+
       const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
         method: 'POST',
         headers: {
@@ -152,8 +214,10 @@
           content: postHtml
         })
       });
+
       const result = await res.json();
       const msg = document.getElementById('message');
+
       if (result && result.url) {
         msg.innerHTML = `<span class="inline-message">✅ تم نشر ${data.type === 'movie' ? 'الفيلم' : 'المسلسل'}: <a href="${result.url}" target="_blank">${data.title}</a></span>`;
       } else {
