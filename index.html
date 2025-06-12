@@ -2,28 +2,56 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة نشر أفلام على بلوجر</title>
+  <title>لوحة نشر أفلام ومسلسلات على بلوجر</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f0f0f0; }
-    .movie-card { border: 1px solid #ccc; margin: 10px 0; padding: 15px; background: #fff; border-radius: 10px; }
-    .movie-card img { max-width: 150px; float: left; margin-left: 15px; border-radius: 5px; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: #fff;
+      padding: 20px;
+    }
+    h2 { color: #ffd700; }
+    .movie-card {
+      background: #1c1c1c;
+      border-radius: 10px;
+      margin: 10px 0;
+      padding: 15px;
+      overflow: hidden;
+    }
+    .movie-card img {
+      max-width: 120px;
+      float: left;
+      margin-left: 15px;
+      border-radius: 5px;
+    }
     .movie-info { overflow: hidden; }
-    button { padding: 10px 15px; margin-top: 10px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 5px; }
-    input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+    button, select, input {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+      font-family: 'Cairo', sans-serif;
+    }
+    button { background: #ffd700; color: #000; cursor: pointer; }
+    #message { margin-top: 20px; font-size: 18px; color: #00ff88; }
   </style>
 </head>
 <body>
+  <h2>🎬 لوحة نشر تلقائي من TMDB إلى بلوجر</h2>
 
-  <h2>🔍 بحث TMDB والنشر في بلوجر</h2>
+  <div id="googleButton"></div>
+  <br>
   <input type="text" id="movieName" placeholder="اكتب اسم الفيلم أو المسلسل">
   <select id="mediaType">
-    <option value="movie">🎬 فيلم</option>
+    <option value="movie">🎥 فيلم</option>
     <option value="tv">📺 مسلسل</option>
   </select>
-  <button onclick="searchMovies()">بحث</button>
+  <button onclick="searchMovies()">🔍 بحث</button>
 
   <div id="results"></div>
+  <div id="message"></div>
 
   <script>
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
@@ -40,7 +68,7 @@
         scope: scope,
         callback: (tokenResponse) => {
           accessToken = tokenResponse.access_token;
-          alert("✅ تم تسجيل الدخول بنجاح");
+          document.getElementById('googleButton').innerHTML = '<p>✅ تم تسجيل الدخول بنجاح</p>';
         }
       });
     };
@@ -53,22 +81,24 @@
       }
     }
 
-    async function searchMovies() {
+    async function searchMovies(page = 1) {
       const query = document.getElementById('movieName').value.trim();
       const type = document.getElementById('mediaType').value;
       const resDiv = document.getElementById('results');
-      resDiv.innerHTML = '⏳ جاري البحث...';
 
-      const res = await fetch(`https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`);
+      if (page === 1) resDiv.innerHTML = '';
+
+      const url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar&page=${page}`;
+
+      const res = await fetch(url);
       const data = await res.json();
 
       if (!data.results || data.results.length === 0) {
-        resDiv.innerHTML = '❌ لا توجد نتائج';
+        resDiv.innerHTML += '<p>❌ لا توجد نتائج.</p>';
         return;
       }
 
-      resDiv.innerHTML = '';
-      data.results.slice(0, 6).forEach(item => {
+      data.results.forEach(item => {
         const title = type === 'movie' ? item.title : item.name;
         const year = (item.release_date || item.first_air_date || '').split('-')[0];
         const overview = item.overview || 'لا يوجد وصف';
@@ -78,14 +108,22 @@
         card.className = 'movie-card';
         card.innerHTML = `
           <div class="movie-info">
-            <img src="${poster}">
+            <img src="${poster}" alt="">
             <h3>${title} (${year})</h3>
             <p>${overview.slice(0, 150)}...</p>
-            <button onclick='ensureAuth(() => publishToBlogger(${JSON.stringify({ title, overview, poster, year, type })}))'>📤 نشر في بلوجر</button>
+            <button onclick='ensureAuth(() => publishToBlogger(${JSON.stringify({ title, overview, poster, year, type })}))'>📤 نشر إلى بلوجر</button>
           </div>
         `;
         resDiv.appendChild(card);
       });
+
+      const loadMoreBtn = document.createElement('button');
+      loadMoreBtn.textContent = '⬇️ تحميل المزيد';
+      loadMoreBtn.onclick = () => {
+        loadMoreBtn.remove();
+        searchMovies(page + 1);
+      };
+      resDiv.appendChild(loadMoreBtn);
     }
 
     async function publishToBlogger(data) {
@@ -97,12 +135,12 @@
         <div class="single-poster">
           <div class="separator" style="clear: both;">
             <a href="${data.poster}" style="display: block; padding: 1em 0; text-align: center;">
-              <img alt="${data.title}" border="0" src="${data.poster}" />
+              <img alt="${data.title}" src="${data.poster}" />
             </a>
           </div>
         </div>
         <div class="post-single-content">
-          <h1 style="direction: rtl;">${data.title}</h1>
+          <h1>${data.title}</h1>
           <div class="post-single-watching">
             <div class="story">
               <h2>القصة</h2>
@@ -113,13 +151,12 @@
             <li><span>الجودة:</span> 1080p</li>
             <li><span>القسم:</span> ${data.type === 'movie' ? 'أفلام' : 'مسلسلات'}</li>
             <li><span>السنة:</span> ${data.year}</li>
-            <li><span>النوع:</span> دراما</li>
-            <li><span>تم إضافته بواسطة:</span> Mazen Mohamed</li>
+            <li><span>تمت الإضافة بواسطة:</span> Mazen Mohamed</li>
           </ul>
           <div class="post-single-buttons">
             <a href="http://alexbesteg.blogspot.com/p/cleaner-2025.html" class="WatchingArea Hoverable">
               <span class="WatchNow">
-                <em class="WatchIcon"></em> 
+                <em class="WatchIcon"></em>
                 مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}
                 <i class="fa fa-angle-left"></i>
               </span>
@@ -129,7 +166,7 @@
       </div>
     </div>
   </mohamedsafyan>
-</yourdesigns>`.trim();
+</yourdesigns>`;
 
       const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
         method: 'POST',
@@ -145,15 +182,14 @@
       });
 
       const result = await res.json();
+      const msg = document.getElementById('message');
 
       if (result && result.url) {
-        alert("✅ تم النشر! الرابط: " + result.url);
+        msg.innerHTML = `✅ تم نشر ${data.type === 'movie' ? 'الفيلم' : 'المسلسل'}: <a href="${result.url}" target="_blank">${data.title}</a>`;
       } else {
-        alert("❌ فشل النشر");
-        console.error(result);
+        msg.innerHTML = `❌ فشل النشر. حاول مرة أخرى.`;
       }
     }
   </script>
-
 </body>
 </html>
