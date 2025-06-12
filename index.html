@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -140,7 +139,7 @@
         },
         body: JSON.stringify({
           kind: 'blogger#post',
-          title: data.title,
+          title: `مشاهدة ${data.type === 'movie' ? 'فيلم' : 'مسلسل'} ${data.title} ${data.year}`,
           content: postHtml
         })
       });
