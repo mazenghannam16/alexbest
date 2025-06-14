@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة تحكم بلوجر</title>
+  <title>لوحة تحكم بلوجر + تسجيل دخول</title>
+  <script src="https://apis.google.com/js/api.js"></script>
   <style>
     body {
       font-family: 'Cairo', Tahoma, sans-serif;
@@ -42,12 +43,24 @@
     button:hover {
       background-color: #1976d2;
     }
+
+    #user-info {
+      margin-top: 15px;
+      color: #333;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
 
   <div class="panel">
     <h2>لوحة تحكم بلوجر 🔧</h2>
+
+    <button onclick="handleAuthClick()">🔑 تسجيل الدخول بجوجل</button>
+
+    <div id="user-info"></div>
+
+    <hr>
 
     <button onclick="openBloggerPage('layout')">📐 التنسيق</button>
     <button onclick="openBloggerPage('posts')">📝 المشاركات</button>
@@ -59,10 +72,11 @@
 
   <script>
     const blogId = '277624714973052630';
+    const clientId = '6996456913-t6ceju8vos0icbev531e7iqdrtm7g7u4.apps.googleusercontent.com';
+    const scopes = 'https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/userinfo.profile';
 
     function openBloggerPage(page) {
       let url = `https://www.blogger.com/blog/`;
-
       switch (page) {
         case 'layout': url += `layout/${blogId}`; break;
         case 'posts': url += `posts/${blogId}`; break;
@@ -72,8 +86,25 @@
         case 'create': url = `https://www.blogger.com/blog/post/edit/${blogId}`; break;
         default: return;
       }
-
       window.open(url, '_blank');
+    }
+
+    function handleAuthClick() {
+      gapi.load('client:auth2', () => {
+        gapi.auth2.init({
+          client_id: clientId,
+          scope: scopes
+        }).then(() => {
+          const authInstance = gapi.auth2.getAuthInstance();
+          authInstance.signIn().then(user => {
+            const profile = user.getBasicProfile();
+            document.getElementById('user-info').innerText = `مرحبًا، ${profile.getName()}`;
+            // لاحقًا: تقدر تستخدم accessToken في Blogger API
+            const accessToken = user.getAuthResponse().access_token;
+            console.log('Access Token:', accessToken);
+          });
+        });
+      });
     }
   </script>
 
