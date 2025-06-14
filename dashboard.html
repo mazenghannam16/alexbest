@@ -153,7 +153,7 @@
 </head>
 <body>
   <div class="dashboard">
-    <button id="loginBtn" class="btn btn-primary w-100 mb-3" onclick="signInWithGoogle()">
+    <button id="loginBtn" class="btn btn-primary w-100 mb-3">
       <i class="fas fa-sign-in-alt"></i> تسجيل الدخول باستخدام Google
     </button>
 
@@ -175,10 +175,10 @@
       <input type="text" id="seriesName" placeholder="أدخل اسم المسلسل هنا" />
       <div id="seriesSuggestions" class="suggestions"></div>
     </div>
-    <button onclick="generateSeriesCode()">توليد الكود</button>
+    <button id="generateSeriesBtn">توليد الكود</button>
     <h3>الكود النهائي:</h3>
     <textarea id="generatedSeriesCode" readonly></textarea>
-    <button onclick="copySeriesCode()">نسخ الكود</button>
+    <button id="copySeriesBtn">نسخ الكود</button>
   </div>
 
   <div class="movie-generator">
@@ -187,10 +187,10 @@
       <input type="text" id="movieName" placeholder="أدخل اسم الفيلم هنا" />
       <div id="movieSuggestions" class="suggestions"></div>
     </div>
-    <button onclick="generateMovieCode()">توليد الكود</button>
+    <button id="generateMovieBtn">توليد الكود</button>
     <h3>الكود النهائي:</h3>
     <textarea id="generatedMovieCode" readonly></textarea>
-    <button onclick="copyMovieCode()">نسخ الكود</button>
+    <button id="copyMovieBtn">نسخ الكود</button>
   </div>
 
   <div class="mazen-generator">
@@ -199,12 +199,12 @@
     <input type="text" id="mazenSection" placeholder="مثال: أفلام أجنبية">
     <label for="mazenWecima">رابط Wecima أو أي رابط مشاهدة:</label>
     <input type="text" id="mazenWecima" placeholder="ألصق رابط الفيلم هنا">
-    <button onclick="mazenConvertLink()">تحويل الرابط</button>
+    <button id="convertLinkBtn">تحويل الرابط</button>
     <label for="mazenServer">رابط السيرفر الناتج:</label>
     <input type="text" id="mazenServer" placeholder="سيتم لصق الرابط المحول هنا تلقائيًا" readonly>
     <div class="mazen-button-group">
-      <button onclick="mazenGenerateCode()">توليد الكود</button>
-      <button onclick="mazenCopyCode()">نسخ الكود</button>
+      <button id="mazenGenerateBtn">توليد الكود</button>
+      <button id="mazenCopyBtn">نسخ الكود</button>
     </div>
     <div id="mazenCopyMessage" class="mazen-copy-message" style="display: none;">✅ تم نسخ الكود!</div>
     <textarea id="mazenGeneratedCode" readonly placeholder="الكود سيظهر هنا..."></textarea>
@@ -217,12 +217,12 @@
 
     function escapeHTML(str) {
       if (!str) return '';
-      return str.replace(/&/g, '&')
-                .replace(/</g, '<')
-                .replace(/>/g, '>')
-                .replace(/"/g, '"')
-                .replace(/'/g, ''')
-                .replace(/`/g, '`');
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/`/g, '&#96;');
     }
 
     function safeAttr(str) {
@@ -292,11 +292,11 @@
               const title = item.title || 'غير معروف';
               const year = (item.release_date?.split('-')[0]) || 'غير معروف';
               suggestion.innerText = `${title} (${year})`;
-              suggestion.onclick = () => {
+              suggestion.addEventListener('click', () => {
                 queryInput.value = title;
                 suggestionsDiv.style.display = 'none';
                 publishMoviePost(item.id, title);
-              };
+              });
               suggestionsDiv.appendChild(suggestion);
             });
             suggestionsDiv.style.display = 'block';
@@ -330,7 +330,6 @@
             } else if (response.status === 429) {
               throw new Error('تم تجاوز حصة الطلبات.');
             } else {
-              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
             }
           }
           return response.json();
@@ -467,16 +466,16 @@
               const suggestion = document.createElement('div');
               suggestion.className = 'suggestion';
               suggestion.innerText = item.name || item.title || 'غير معروف';
-              suggestion.onclick = () => {
+              suggestion.addEventListener('click', () => {
                 queryInput.value = item.name || item.title || '';
                 suggestionsDiv.style.display = 'none';
-              };
+              });
               suggestionsDiv.appendChild(suggestion);
             });
             suggestionsDiv.style.display = 'block';
           } else {
-            suggestionsDiv.style.display = 'none';
             suggestionsDiv.innerHTML = '<p class="suggestion">لا توجد نتائج.</p>';
+            suggestionsDiv.style.display = 'block';
           }
         })
         .catch(error => {
@@ -738,13 +737,53 @@
         fetch('https://www.googleapis.com/oauth2/v2/userinfo?alt=json', {
           headers: { Authorization: `Bearer ${token}` }
         })
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('playerEmail').innerText = `مرحبًا، ${data.email}`;
-        })
-        .catch(error => {
-          console.error('خطأ في جلب بيانات المستخدم:', error);
-        });
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('playerEmail').innerText = `مرحبًا، ${data.email}`;
+          })
+          .catch(error => {
+            console.error('خطأ في جلب بيانات المستخدم:', error);
+          });
+      }
+
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) {
+        loginBtn.addEventListener('click', signInWithGoogle);
+      }
+
+      const generateSeriesBtn = document.getElementById('generateSeriesBtn');
+      if (generateSeriesBtn) {
+        generateSeriesBtn.addEventListener('click', generateSeriesCode);
+      }
+
+      const generateMovieBtn = document.getElementById('generateMovieBtn');
+      if (generateMovieBtn) {
+        generateMovieBtn.addEventListener('click', generateMovieCode);
+      }
+
+      const copySeriesBtn = document.getElementById('copySeriesBtn');
+      if (copySeriesBtn) {
+        copySeriesBtn.addEventListener('click', copySeriesCode);
+      }
+
+      const copyMovieBtn = document.getElementById('copyMovieBtn');
+      if (copyMovieBtn) {
+        copyMovieBtn.addEventListener('click', copyMovieCode);
+      }
+
+      const convertLinkBtn = document.getElementById('convertLinkBtn');
+      if (convert Prisoner) {
+        convertLinkBtn.addEventListener('click', mazenConvertLink);
+      }
+
+      const mazenGenerateBtn = document.getElementById('mazenGenerateBtn');
+      if (mazenGenerateBtn) {
+        mazenGenerateBtn.addEventListener('click', mazenGenerateCode);
+      }
+
+      const mazenCopyBtn = document.getElementById('mazenCopyBtn');
+      if (mazenCopyBtn) {
+        mazenCopyBtn.addEventListener('click', mazenCopyCode);
       }
 
       const movieSearchInput = document.getElementById('movieSearch');
