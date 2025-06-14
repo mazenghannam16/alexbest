@@ -1,162 +1,81 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>TMDB to Blogger</title>
-  <script src="https://apis.google.com/js/api.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+  <title>لوحة تحكم بلوجر</title>
   <style>
     body {
-      font-family: 'Cairo', sans-serif;
-      background: #f0f0f0;
-      padding: 20px;
-      direction: rtl;
+      font-family: 'Cairo', Tahoma, sans-serif;
+      background: #f0f2f5;
+      padding: 30px;
+      text-align: center;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      font-family: 'Cairo', sans-serif;
-    }
-    .suggestions {
-      background: white;
-      border: 1px solid #ccc;
-      position: absolute;
-      z-index: 10;
-      width: 300px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .suggestions div {
-      padding: 5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-    }
-    .suggestions div:hover {
-      background: #eee;
-    }
-    .suggestions img {
-      width: 40px;
-      height: auto;
-      margin-left: 10px;
-      border-radius: 4px;
-    }
-    #loadingSpinner {
-      display: none;
-      margin-top: 10px;
-      color: #333;
-      font-weight: bold;
-    }
-    #postsList {
-      margin-top: 30px;
+
+    .panel {
       background: #fff;
-      padding: 20px;
-      border-radius: 10px;
+      padding: 25px;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 12px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    .post-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
     }
-    .post-item:last-child { border-bottom: none; }
-    .post-item button {
-      margin-left: 5px;
+
+    button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      background-color: #2196F3;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #1976d2;
     }
   </style>
 </head>
 <body>
 
-<h2>ابحث عن فيلم</h2>
-<input type="text" id="search" placeholder="اكتب اسم الفيلم...">
-<div id="suggestions" class="suggestions"></div>
-<button onclick="handleAuthClick()">تسجيل الدخول لجوجل</button>
-<button onclick="publishPost()">نشر في بلوجر</button>
-<div id="loadingSpinner">جاري النشر...</div>
+  <div class="panel">
+    <h2>لوحة تحكم بلوجر 🔧</h2>
 
-<div id="postsList">
-  <h3>آخر المقالات</h3>
-  <div id="postsContainer"></div>
-  <button onclick="loadMorePosts()">عرض المزيد</button>
-</div>
+    <button onclick="openBloggerPage('layout')">📐 التنسيق</button>
+    <button onclick="openBloggerPage('posts')">📝 المشاركات</button>
+    <button onclick="openBloggerPage('settings')">⚙️ الإعدادات</button>
+    <button onclick="openBloggerPage('theme')">🎨 المظهر</button>
+    <button onclick="openBloggerPage('comments')">💬 التعليقات</button>
+    <button onclick="openBloggerPage('create')">➕ تدوينة جديدة</button>
+  </div>
 
-<script>
-let posts = [];
-let displayedCount = 0;
+  <script>
+    const blogId = '277624714973052630';
 
-async function loadPosts() {
-  const token = gapi.client.getToken()?.access_token;
-  if (!token) return;
+    function openBloggerPage(page) {
+      let url = `https://www.blogger.com/blog/`;
 
-  const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const data = await res.json();
-  posts = data.items || [];
-  displayedCount = 0;
-  renderPosts();
-}
+      switch (page) {
+        case 'layout': url += `layout/${blogId}`; break;
+        case 'posts': url += `posts/${blogId}`; break;
+        case 'settings': url += `settings/${blogId}`; break;
+        case 'theme': url += `theme/${blogId}`; break;
+        case 'comments': url += `comments/${blogId}`; break;
+        case 'create': url = `https://www.blogger.com/blog/post/edit/${blogId}`; break;
+        default: return;
+      }
 
-function renderPosts() {
-  const container = document.getElementById('postsContainer');
-  const postsToShow = posts.slice(displayedCount, displayedCount + 5);
-  postsToShow.forEach(post => {
-    const div = document.createElement('div');
-    div.className = 'post-item';
-    div.innerHTML = `
-      <span>${post.title}</span>
-      <div>
-        <button onclick="window.open('${post.url}', '_blank')">عرض</button>
-        <button onclick="copyLink('${post.url}')">نسخ الرابط</button>
-        <button onclick="deletePost('${post.id}')">حذف</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-  displayedCount += postsToShow.length;
-}
-
-function loadMorePosts() {
-  renderPosts();
-}
-
-function copyLink(url) {
-  navigator.clipboard.writeText(url).then(() => alert('تم نسخ الرابط'));
-}
-
-async function deletePost(id) {
-  if (!confirm('هل أنت متأكد من الحذف؟')) return;
-  const token = gapi.client.getToken()?.access_token;
-  if (!token) return;
-  await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  posts = posts.filter(p => p.id !== id);
-  document.getElementById('postsContainer').innerHTML = '';
-  displayedCount = 0;
-  renderPosts();
-}
-
-window.onload = () => {
-  gapi.load('client', async () => {
-    await gapi.client.init({});
-    gapiInited = true;
-  });
-
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
-    scope,
-    callback: (tokenResponse) => {
-      gapi.client.setToken(tokenResponse);
-      alert('تم تسجيل الدخول بنجاح');
-      loadPosts();
+      window.open(url, '_blank');
     }
-  });
-};
-</script>
+  </script>
+
 </body>
 </html>
