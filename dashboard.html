@@ -330,6 +330,7 @@
             } else if (response.status === 429) {
               throw new Error('تم تجاوز حصة الطلبات.');
             } else {
+              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
             }
           }
           return response.json();
@@ -772,7 +773,7 @@
       }
 
       const convertLinkBtn = document.getElementById('convertLinkBtn');
-      if (convert Prisoner) {
+      if (convertLinkBtn) {
         convertLinkBtn.addEventListener('click', mazenConvertLink);
       }
 
