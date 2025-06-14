@@ -24,37 +24,36 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
       margin-bottom: 40px;
     }
-    .dashboard input, 
-    .dashboard textarea {
+    .dashboard input {
       background-color: #121212;
       color: #fff;
       border: none;
       border-radius: 5px;
       padding: 10px;
-    }
-    .dashboard textarea {
-      resize: vertical;
+      width: 100%;
+      margin: 10px 0;
     }
     .spinner {
       display: none;
       margin: 10px auto;
       text-align: center;
     }
-    .post-item {
+    .suggestions {
+      position: absolute;
       background: #292929;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 6px;
+      border-radius: 5px;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
     }
-    .link-box {
-      background-color: #333;
+    .suggestion {
       padding: 10px;
-      border-radius: 6px;
-      margin-top: 10px;
-      word-break: break-all;
+      cursor: pointer;
     }
-    .copy-btn {
-      margin-top: 5px;
+    .suggestion:hover {
+      background: #555;
     }
     .series-generator, .movie-generator {
       max-width: 800px;
@@ -84,23 +83,6 @@
     .movie-generator textarea {
       height: 300px;
       resize: vertical;
-    }
-    .suggestions {
-      position: absolute;
-      background: #292929;
-      border-radius: 5px;
-      width: 100%;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-    }
-    .suggestion {
-      padding: 10px;
-      cursor: pointer;
-    }
-    .suggestion:hover {
-      background: #555;
     }
     .mazen-generator {
       max-width: 800px;
@@ -178,20 +160,13 @@
     <h1 class="mb-3">لوحة تحكم اليكس بست</h1>
     <p id="playerEmail"></p>
 
-    <input type="text" id="postTitle" class="form-control" placeholder="عنوان المقالة أو الصفحة" />
-    <textarea id="postContent" class="form-control mt-2" placeholder="محتوى المقالة أو الصفحة" rows="5"></textarea>
-
-    <div class="d-flex gap-2 flex-wrap mt-3">
-      <button class="btn btn-success" onclick="publishPost()"><i class="fas fa-newspaper"></i> نشر الفيلم</button>
-      <button class="btn btn-secondary" onclick="publishPage()"><i class="fas fa-file-alt"></i> نشر السيرفر</button>
-      <button class="btn btn-info" onclick="getPosts()"><i class="fas fa-book"></i> عرض الأفلام</button>
-      <button class="btn btn-light" onclick="getPages()"><i class="fas fa-files"></i> عرض السيرفرات</button>
+    <div style="position: relative;">
+      <input type="text" id="movieSearch" class="form-control" placeholder="ابحث عن فيلم..." />
+      <div id="movieSuggestions" class="suggestions"></div>
     </div>
 
     <div id="status" class="mt-3 text-warning"></div>
     <div class="spinner" id="spinner"><div class="spinner-border text-light" role="status"></div></div>
-
-    <div id="postList" class="mt-4"></div>
   </div>
 
   <div class="series-generator">
@@ -220,42 +195,34 @@
 
   <div class="mazen-generator">
     <h2>مولد كود Mazen Mohamed</h2>
-
     <label for="mazenSection">اسم القسم:</label>
     <input type="text" id="mazenSection" placeholder="مثال: أفلام أجنبية">
-
     <label for="mazenWecima">رابط Wecima أو أي رابط مشاهدة:</label>
     <input type="text" id="mazenWecima" placeholder="ألصق رابط الفيلم هنا">
-
     <button onclick="mazenConvertLink()">تحويل الرابط</button>
-
     <label for="mazenServer">رابط السيرفر الناتج:</label>
     <input type="text" id="mazenServer" placeholder="سيتم لصق الرابط المحول هنا تلقائيًا" readonly>
-
     <div class="mazen-button-group">
       <button onclick="mazenGenerateCode()">توليد الكود</button>
       <button onclick="mazenCopyCode()">نسخ الكود</button>
     </div>
-
     <div id="mazenCopyMessage" class="mazen-copy-message" style="display: none;">✅ تم نسخ الكود!</div>
-
     <textarea id="mazenGeneratedCode" readonly placeholder="الكود سيظهر هنا..."></textarea>
   </div>
 
   <script>
     const blogId = '277624714973052630';
-    // تأكد من أن مفتاح TMDB API صالح. احصل على مفتاح جديد من https://www.themoviedb.org/settings/api إذا لزم الأمر.
     const apiKey = '4b1125dc507cd0f303b025b30d6311dd';
     let token = null;
 
     function escapeHTML(str) {
       if (!str) return '';
-      return str.replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;')
-                .replace(/`/g, '&#96;');
+      return str.replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, ''')
+                .replace(/`/g, '`');
     }
 
     function safeAttr(str) {
@@ -285,284 +252,178 @@
       });
     }
 
-    function copyLink(url) {
-      copyToClipboard(url);
+    function fetchMovieSuggestions() {
+      const queryInput = document.getElementById('movieSearch');
+      const suggestionsDiv = document.getElementById('movieSuggestions');
+
+      if (!queryInput || !suggestionsDiv) {
+        console.warn('عنصر movieSearch أو movieSuggestions غير موجود.');
+        return;
+      }
+
+      const query = queryInput.value.trim();
+      if (!query) {
+        suggestionsDiv.style.display = 'none';
+        suggestionsDiv.innerHTML = '';
+        return;
+      }
+
+      const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=ar`;
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('مفتاح API غير صالح. يرجى التحقق من مفتاح TMDB API.');
+            } else if (response.status === 429) {
+              throw new Error('تم تجاوز حصة الطلبات. حاول مرة أخرى لاحقًا.');
+            } else {
+              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
+            }
+          }
+          return response.json();
+        })
+        .then(data => {
+          suggestionsDiv.innerHTML = '';
+          if (data.results && data.results.length > 0) {
+            data.results.slice(0, 5).forEach(item => {
+              const suggestion = document.createElement('div');
+              suggestion.className = 'suggestion';
+              const title = item.title || 'غير معروف';
+              const year = (item.release_date?.split('-')[0]) || 'غير معروف';
+              suggestion.innerText = `${title} (${year})`;
+              suggestion.onclick = () => {
+                queryInput.value = title;
+                suggestionsDiv.style.display = 'none';
+                publishMoviePost(item.id, title);
+              };
+              suggestionsDiv.appendChild(suggestion);
+            });
+            suggestionsDiv.style.display = 'block';
+          } else {
+            suggestionsDiv.innerHTML = '<p class="suggestion">لا توجد نتائج.</p>';
+            suggestionsDiv.style.display = 'block';
+          }
+        })
+        .catch(error => {
+          console.error('خطأ في جلب الاقتراحات:', error.message);
+          suggestionsDiv.innerHTML = '<p class="suggestion text-warning">فشل في جلب الاقتراحات. حاول لاحقًا.</p>';
+          suggestionsDiv.style.display = 'block';
+        });
     }
 
-    function publishPost() {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
+    function publishMoviePost(movieId, title) {
+      if (!token) {
+        document.getElementById('status').innerText = '⚠️ يجب تسجيل الدخول أولاً.';
         return;
       }
 
       showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(res => res.json())
-      .then(data => {
-        const link = data.url;
-        document.getElementById('status').innerHTML = `
-          ✅ تم نشر المقالة<br>
-          <div class="link-box">
-            ${escapeHTML(link)}<br>
-            <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapeHTML(link)}')">نسخ الرابط</button>
-          </div>`;
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postContent').value = '';
-      })
-      .catch(error => {
-        console.error('خطأ في النشر:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء النشر.';
-      })
-      .finally(() => showSpinner(false));
-    }
+      document.getElementById('status').innerText = 'جارٍ جلب بيانات الفيلم...';
 
-    function publishPage() {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل النشر.';
-        return;
-      }
+      const url = `https://api.themoviedb.org/3/movie/${movieId}?api_key=${encodeURIComponent(apiKey)}&language=ar`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('مفتاح API غير صالح.');
+            } else if (response.status === 429) {
+              throw new Error('تم تجاوز حصة الطلبات.');
+            } else {
+              throw new Error(`فشل الطلب: ${response.status} ${response.statusText}`);
+            }
+          }
+          return response.json();
+        })
+        .then(data => {
+          const description = data.overview || 'لا يوجد وصف متاح';
+          const image = data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : 'https://via.placeholder.com/500x750?text=لا+توجد+صورة';
+          const year = (data.release_date?.split('-')[0]) || 'غير معروف';
+          const language = data.original_language || 'en';
+          const genres = data.genres?.map(genre => genre.name) || ['غير معروف'];
 
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(res => res.json())
-      .then(data => {
-        const link = data.url;
-        document.getElementById('status').innerHTML = `
-          ✅ تم نشر الصفحة<br>
-          <div class="link-box">
-            ${escapeHTML(link)}<br>
-            <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapeHTML(link)}')">نسخ الرابط</button>
-          </div>`;
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postContent').value = '';
-      })
-      .catch(error => {
-        console.error('خطأ في النشر:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء النشر.';
-      })
-      .finally(() => showSpinner(false));
-    }
+          let section = language === 'ar' ? 'أفلام عربية' : language === 'en' ? 'أفلام أجنبية' : 'أفلام أخرى';
+          const sectionLink = `https://alexbesteg.blogspot.com/search/label/${encodeURIComponent(section)}`;
 
-    function getPosts() {
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const list = document.getElementById('postList');
-        list.innerHTML = '';
-        data.items?.forEach(post => {
-          const escapedTitle = escapeHTML(post.title);
-          const escapedContent = escapeHTML(post.content);
-          const escapedUrl = escapeHTML(post.url);
-          list.innerHTML += `
-            <div class="card bg-dark text-white mb-3" data-post-id="${post.id}" data-title="${safeAttr(post.title)}" data-content="${safeAttr(post.content)}">
-              <div class="card-body">
-                <h5 class="card-title">${escapedTitle}</h5>
-                <div class="link-box">
-                  ${escapedUrl}<br>
-                  <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapedUrl}')">نسخ الرابط</button>
-                </div>
-                <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm edit-post-btn">
-                    <i class="fas fa-edit"></i> تعديل
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">
-                    <i class="fas fa-trash"></i> حذف
-                  </button>
-                </div>
-              </div>
+          fetch(`https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${encodeURIComponent(apiKey)}&language=ar`)
+            .then(response => response.json())
+            .then(videoData => {
+              let trailerLink = videoData.results?.[0] ? `https://www.youtube.com/watch?v=${videoData.results[0].key}` : '';
+
+              const content = `
+<yourdesigns>
+  <mohamedsafyan>
+    <div class="post-single">
+      <div class="container">
+        <div class="single-poster">
+          <div class="separator" style="clear: both;">
+            <a href="${escapeHTML(image)}" style="display: block; padding: 1em 0; text-align: center;">
+              <img alt="${escapeHTML(title)}" border="0" data-original-height="545" data-original-width="394" src="${escapeHTML(image)}" />
+            </a>
+          </div>
+        </div>
+        <div class="post-single-content">
+          <h1 style="direction: rtl;">${escapeHTML(title)}</h1>
+          <div class="post-Inner"></div>
+          <div class="post-single-watching">
+            <div class="story">
+              <h2>القصة</h2>
+              <p>${escapeHTML(description)}</p>
             </div>
-          `;
+          </div>
+          <ul class="post-information-list">
+            <li><span>الجودة:</span> <a href="#">1080p</a></li>
+            <li><span>القسم:</span> <a href="${escapeHTML(sectionLink)}">${escapeHTML(section)}</a></li>
+            <li><span>السنة:</span> <a href="#">${escapeHTML(year)}</a></li>
+            <li><span>النوع:</span> <a href="#">${escapeHTML(genres.join(', '))}</a></li>
+            <li><span>تم إضافة الفيلم بواسطة:</span> <a href="#">Mazen Mohamed</a></li>
+          </ul>
+          <div class="post-single-buttons">
+            ${trailerLink ? `<a href="${escapeHTML(trailerLink)}" class="btn btn-danger btn-sm mt-2"><span><i class="fab fa-youtube"></i> مشاهدة الإعلان</span></a>` : ''}
+            <a href="#" class="WatchingArea Hoverable">
+              <span class="WatchNow"><em class="WatchIcon"></em> مشاهدة الفيلم <i class="fa fa-angle-left"></i></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mohamedsafyan>
+</yourdesigns>
+              `;
+
+              fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+              })
+                .then(res => res.json())
+                .then(data => {
+                  const link = data.url;
+                  document.getElementById('status').innerHTML = `
+                    ✅ تم نشر الفيلم<br>
+                    <div class="link-box">
+                      ${escapeHTML(link)}<br>
+                      <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyToClipboard('${escapeHTML(link)}')">نسخ الرابط</button>
+                    </div>`;
+                  document.getElementById('movieSearch').value = '';
+                })
+                .catch(error => {
+                  console.error('خطأ في النشر:', error);
+                  document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء النشر.';
+                })
+                .finally(() => showSpinner(false));
+            })
+            .catch(error => {
+              console.error('خطأ في جلب الإعلان:', error.message);
+              document.getElementById('status').innerText = `⚠️ حدث خطأ أثناء جلب الإعلان: ${error.message}`;
+              showSpinner(false);
+            });
+        })
+        .catch(error => {
+          console.error('خطأ في جلب بيانات الفيلم:', error.message);
+          document.getElementById('status').innerText = `⚠️ حدث خطأ في جلب البيانات: ${error.message}`;
+          showSpinner(false);
         });
-        document.querySelectorAll('.edit-post-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const card = btn.closest('.card');
-            const id = card.dataset.postId;
-            const title = decodeURIComponent(card.dataset.title);
-            const content = decodeURIComponent(card.dataset.content);
-            editPost(id, title, content);
-          });
-        });
-      })
-      .catch(error => {
-        console.error('خطأ في جلب المقالات:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء جلب المقالات.';
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function getPages() {
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const list = document.getElementById('postList');
-        list.innerHTML = '';
-        data.items?.forEach(page => {
-          const escapedTitle = escapeHTML(page.title);
-          const escapedContent = escapeHTML(page.content);
-          const escapedUrl = escapeHTML(page.url);
-          list.innerHTML += `
-            <div class="card bg-dark text-white mb-3" data-page-id="${page.id}" data-title="${safeAttr(page.title)}" data-content="${safeAttr(page.content)}">
-              <div class="card-body">
-                <h5 class="card-title">${escapedTitle}</h5>
-                <div class="link-box">
-                  ${escapedUrl}<br>
-                  <button class="btn btn-sm btn-outline-light copy-btn" onclick="copyLink('${escapedUrl}')">نسخ الرابط</button>
-                </div>
-                <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-warning btn-sm edit-page-btn">
-                    <i class="fas fa-edit"></i> تعديل
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">
-                    <i class="fas fa-trash"></i> حذف
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-        document.querySelectorAll('.edit-page-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const card = btn.closest('.card');
-            const id = card.dataset.pageId;
-            const title = decodeURIComponent(card.dataset.title);
-            const content = decodeURIComponent(card.dataset.content);
-            editPage(id, title, content);
-          });
-        });
-      })
-      .catch(error => {
-        console.error('خطأ في جلب الصفحات:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء جلب الصفحات.';
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function editPost(id, title, content) {
-      document.getElementById('postTitle').value = title;
-      document.getElementById('postContent').value = content;
-      document.getElementById('status').innerHTML = `
-        <button class="btn btn-primary" onclick="updatePost('${id}')">تحديث المقالة</button>
-      `;
-    }
-
-    function updatePost(id) {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل التحديث.';
-        return;
-      }
-
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('status').innerText = '✅ تم تحديث المقالة بنجاح.';
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postContent').value = '';
-        getPosts();
-      })
-      .catch(error => {
-        console.error('خطأ في التحديث:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء التحديث.';
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function deletePost(id) {
-      if (!confirm('هل أنت متأكد من حذف هذا المقال؟')) return;
-
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم حذف المقال.';
-        getPosts();
-      })
-      .catch(error => {
-        console.error('خطأ في الحذف:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء الحذف.';
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function editPage(id, title, content) {
-      document.getElementById('postTitle').value = title;
-      document.getElementById('postContent').value = content;
-      document.getElementById('status').innerHTML = `
-        <button class="btn btn-primary" onclick="updatePage('${id}')">تحديث الصفحة</button>
-      `;
-    }
-
-    function updatePage(id) {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      if (!title || !content) {
-        document.getElementById('status').innerText = '⚠️ يجب تعبئة العنوان والمحتوى قبل التحديث.';
-        return;
-      }
-
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('status').innerText = '✅ تم تحديث الصفحة بنجاح.';
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postContent').value = '';
-        getPages();
-      })
-      .catch(error => {
-        console.error('خطأ في التحديث:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء التحديث.';
-      })
-      .finally(() => showSpinner(false));
-    }
-
-    function deletePage(id) {
-      if (!confirm('هل أنت متأكد من حذف هذه الصفحة؟')) return;
-
-      showSpinner(true);
-      fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(() => {
-        document.getElementById('status').innerText = '✅ تم حذف الصفحة.';
-        getPages();
-      })
-      .catch(error => {
-        console.error('خطأ في الحذف:', error);
-        document.getElementById('status').innerText = '⚠️ حدث خطأ أثناء الحذف.';
-      })
-      .finally(() => showSpinner(false));
     }
 
     function fetchSuggestions(type) {
@@ -798,7 +659,6 @@
       }
     }
 
-    // دوال مولد كود Mazen Mohamed
     function mazenConvertLink() {
       const originalLink = document.getElementById('mazenWecima').value.trim();
       if (!originalLink) {
@@ -887,13 +747,28 @@
         });
       }
 
+      const movieSearchInput = document.getElementById('movieSearch');
+      let debounceTimeout;
+      if (movieSearchInput) {
+        movieSearchInput.addEventListener('input', () => {
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(fetchMovieSuggestions, 300);
+        });
+      }
+
       const seriesInput = document.getElementById('seriesName');
       const movieInput = document.getElementById('movieName');
       if (seriesInput) {
-        seriesInput.addEventListener('input', () => fetchSuggestions('series'));
+        seriesInput.addEventListener('input', () => {
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(() => fetchSuggestions('series'), 300);
+        });
       }
       if (movieInput) {
-        movieInput.addEventListener('input', () => fetchSuggestions('movie'));
+        movieInput.addEventListener('input', () => {
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(() => fetchSuggestions('movie'), 300);
+        });
       }
     });
   </script>
